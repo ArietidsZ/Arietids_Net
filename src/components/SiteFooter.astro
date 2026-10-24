@@ -1,0 +1,136 @@
+---
+import Icon from '~/components/ui/Icon.astro';
+import Logo from '~/components/ui/Logo.astro';
+import { t, tr, type Locale } from '~/i18n';
+import { getFacts } from '~/lib/content';
+import { site } from '~/config/site';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const _ = t(lang);
+const facts = await getFacts();
+const name = facts.get('identity.name');
+const alias = facts.get('identity.alias');
+const github = facts.get('identity.github');
+const email = facts.get('contact.email');
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container inner">
+    <div class="sign">
+      <Logo size={24} />
+      <div>
+        <p class="who">
+          {tr(name?.text, lang) || tr(alias?.text, lang) || _('site.name')}
+          {name && alias && <span class="faint"> · {tr(alias.text, lang)}</span>}
+        </p>
+      </div>
+    </div>
+
+    <div class="links">
+      {
+        github?.url && (
+          <a class="dup" href={github.url} rel="me noopener" target="_blank">
+            <Icon name="github" size={16} /> GitHub
+          </a>
+        )
+      }
+      {
+        email?.url && (
+          <a class="dup" href={email.url}>
+            <Icon name="mail" size={16} /> {_('contact.email')}
+          </a>
+        )
+      }
+      <a href="#top" data-to-top>
+        <Icon name="arrow-up" size={16} />
+        {_('footer.top')}
+      </a>
+    </div>
+
+    <p class="meta data faint">© {year} {site.domain}</p>
+  </div>
+</footer>
+
+<script>
+  // "Back to top" only makes sense on pages long enough to scroll away from it.
+  const short = () => document.documentElement.scrollHeight < innerHeight * 1.5;
+  document.querySelectorAll<HTMLAnchorElement>('[data-to-top]').forEach((a) => (a.hidden = short()));
+  document.querySelectorAll<HTMLAnchorElement>('[data-to-top]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off';
+      window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+      document.querySelector<HTMLElement>('.brand')?.focus({ preventScroll: true });
+    }),
+  );
+</script>
+
+<style>
+  .site-footer {
+    position: relative;
+    margin-top: calc(var(--section-gap) / 2);
+    padding-block: 1.6rem 1.8rem;
+    border-top: 1px solid var(--line);
+    background: linear-gradient(to bottom, transparent, var(--bg-deep));
+  }
+  /* On the home page the footer is the ground under the contact horizon, and the contact section
+     already carries GitHub and email. */
+  :global(body:has(#contact)) .site-footer {
+    margin-top: 0;
+    border-top: 0;
+    background: var(--bg-deep);
+  }
+  :global(body:has(#contact)) .dup {
+    display: none;
+  }
+  .inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 2rem;
+  }
+  .sign {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    margin-right: auto;
+  }
+  .who {
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    font-size: var(--step--1);
+  }
+  .links a {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-muted);
+  }
+  .links a:hover {
+    color: var(--accent);
+  }
+  .links a[hidden] {
+    display: none;
+  }
+  .meta {
+    color: var(--text-faint);
+  }
+  @media (max-width: 40rem) {
+    .inner {
+      gap: 0.75rem 1.25rem;
+    }
+    .sign {
+      flex-basis: 100%;
+    }
+  }
+</style>

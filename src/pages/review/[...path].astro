@@ -1,0 +1,363 @@
+---
+/**
+ * Review checklist — exists only in preview mode (never in public builds).
+ * Lists every gated entry with its evidence and notes, and builds the CLI command that
+ * flips the selected entries' visibility in the YAML files.
+ */
+import Base from '~/layouts/Base.astro';
+import { getReviewRows, isPreview, type ReviewRow } from '~/lib/content';
+
+export async function getStaticPaths() {
+  return isPreview ? [{ params: { path: undefined } }] : [];
+}
+
+const rows = await getReviewRows();
+const collections = [...new Set(rows.map((r) => r.collection))];
+const label: Record<string, string> = {
+  facts: '个人事实与文案',
+  work: '研究、项目与写作',
+  honors: '荣誉',
+  timeline: '轨迹',
+  notes: '笔记',
+};
+const count = (v?: ReviewRow['visibility']) => rows.filter((r) => !v || r.visibility === v).length;
+const refs = (r: ReviewRow) => (Array.isArray(r.ref) ? r.ref.join(', ') : r.ref ?? '');
+---
+
+<Base lang="zh" title="审阅清单" noindex>
+  <div class="review container">
+    <header>
+      <p class="mono kicker">Preview only · 不会进入生产构建</p>
+      <h1>内容审阅清单</h1>
+      <p class="muted lede">
+        每一项都来自资料包，默认 <code>pending</code>：只在预览中出现。勾选你确认公开的条目，复制底部命令在项目目录运行，
+        再执行 <code>npm run build</code> 即可。<code>private</code> 条目不会出现在任何页面上。
+      </p>
+      <ul class="summary" role="list">
+        <li><b>{count()}</b> 全部</li>
+        <li class="pending"><b>{count('pending')}</b> 待确认</li>
+        <li class="public"><b>{count('public')}</b> 已公开</li>
+        <li class="private"><b>{count('private')}</b> 不公开</li>
+      </ul>
+      <div class="tools">
+        <div class="filters" role="group" aria-label="按状态筛选">
+          <button type="button" aria-pressed="true" data-vis="">全部</button>
+          <button type="button" aria-pressed="false" data-vis="pending">待确认</button>
+          <button type="button" aria-pressed="false" data-vis="public">已公开</button>
+          <button type="button" aria-pressed="false" data-vis="private">不公开</button>
+        </div>
+        <button type="button" class="ghost" data-select-visible>全选可见项</button>
+        <button type="button" class="ghost" data-clear>清空选择</button>
+      </div>
+    </header>
+
+    {
+      collections.map((c) => (
+        <section class="group">
+          <h2>
+            {label[c] ?? c} <span class="mono faint">src/content/{c === 'notes' ? 'notes/*.md' : `${c}.yaml`}</span>
+          </h2>
+          <div class="table" role="table" aria-label={label[c] ?? c}>
+            {rows
+              .filter((r) => r.collection === c)
+              .map((r) => (
+                <label class="row" role="row" data-row data-vis={r.visibility} data-key={`${r.collection}:${r.id}`}>
+                  <span role="cell" class="pick">
+                    <input type="checkbox" value={`${r.collection}:${r.id}`} />
+                  </span>
+                  <span role="cell" class="main">
+                    <span class="title">{r.title}</span>
+                    <span class="id mono">
+                      {r.collection}:{r.id}
+                      {refs(r) && <span class="faint"> · {refs(r)}</span>}
+                    </span>
+                    {r.review && <span class="note">{r.review}</span>}
+                  </span>
+                  <span role="cell" class="meta">
+                    <span class={`vis ${r.visibility}`}>{r.visibility}</span>
+                    {r.evidence && <span class="mono ev">{r.evidence}</span>}
+                    {r.sources.length > 0 && <span class="mono faint src">{r.sources.join(' · ')}</span>}
+                  </span>
+                </label>
+              ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+
+  <div class="dock" data-dock>
+    <span class="mono"><b data-count>0</b> 项已选</span>
+    <select data-target aria-label="设为">
+      <option value="public">设为 public（公开）</option>
+      <option value="pending">设为 pending（待确认）</option>
+      <option value="private">设为 private（不公开）</option>
+    </select>
+    <code data-cmd>npm run visibility -- public …</code>
+    <button type="button" class="copy" data-copy-cmd>复制命令</button>
+  </div>
+</Base>
+
+<script>
+  const KEY = 'review-selection';
+  const boxes = [...document.querySelectorAll<HTMLInputElement>('[data-row] input')];
+  const rows = [...document.querySelectorAll<HTMLElement>('[data-row]')];
+  const countEl = document.querySelector('[data-count]')!;
+  const cmdEl = document.querySelector<HTMLElement>('[data-cmd]')!;
+  const target = document.querySelector<HTMLSelectElement>('[data-target]')!;
+
+  let saved: string[] = [];
+  try {
+    saved = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+  } catch {}
+  boxes.forEach((b) => (b.checked = saved.includes(b.value)));
+
+  function update() {
+    const picked = boxes.filter((b) => b.checked).map((b) => b.value);
+    countEl.textContent = String(picked.length);
+    cmdEl.textContent = `npm run visibility -- ${target.value} ${picked.length ? picked.join(' ') : '…'}`;
+    try {
+      localStorage.setItem(KEY, JSON.stringify(picked));
+    } catch {}
+  }
+  boxes.forEach((b) => b.addEventListener('change', update));
+  target.addEventListener('change', update);
+  update();
+
+  document.querySelectorAll<HTMLButtonElement>('[data-vis]').forEach((btn, _, all) =>
+    btn.addEventListener('click', () => {
+      all.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      const v = btn.dataset.vis;
+      rows.forEach((r) => (r.hidden = !!v && r.dataset.vis !== v));
+    }),
+  );
+  document.querySelector('[data-select-visible]')?.addEventListener('click', () => {
+    rows.forEach((r) => {
+      if (!r.hidden) r.querySelector('input')!.checked = true;
+    });
+    update();
+  });
+  document.querySelector('[data-clear]')?.addEventListener('click', () => {
+    boxes.forEach((b) => (b.checked = false));
+    update();
+  });
+  document.querySelector<HTMLButtonElement>('[data-copy-cmd]')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    await navigator.clipboard.writeText(cmdEl.textContent ?? '').catch(() => {});
+    btn.textContent = '已复制';
+    setTimeout(() => (btn.textContent = '复制命令'), 1500);
+  });
+</script>
+
+<style>
+  .review {
+    padding-block: 3rem 10rem;
+  }
+  .kicker {
+    color: var(--pending);
+  }
+  h1 {
+    font-size: var(--step-4);
+    margin-block: 0.5rem 1rem;
+  }
+  .lede {
+    max-width: 50rem;
+  }
+  code {
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background: var(--surface-2);
+  }
+  .summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block: 1.5rem;
+  }
+  .summary li {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: var(--step--1);
+  }
+  .summary b {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    color: var(--text);
+    margin-right: 0.35rem;
+  }
+  .summary .pending b {
+    color: var(--pending);
+  }
+  .summary .public b {
+    color: var(--ok);
+  }
+  .tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .filters {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  .filters button,
+  .ghost {
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: var(--step--1);
+    color: var(--text-muted);
+  }
+  .filters button[aria-pressed='true'] {
+    background: var(--accent-fill);
+    color: var(--accent-ink);
+  }
+  .ghost {
+    border: 1px solid var(--line);
+  }
+  .group {
+    margin-top: 3rem;
+  }
+  .group h2 {
+    font-size: var(--step-2);
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+  .group h2 .mono {
+    font-size: var(--step--2);
+    text-transform: none;
+  }
+  .table {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-l);
+    overflow: hidden;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 15rem;
+    gap: 1rem;
+    padding: 0.9rem 1.2rem 0.9rem 0.8rem;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .row:last-child {
+    border-bottom: 0;
+  }
+  .row:hover {
+    background: var(--surface);
+  }
+  .row:has(input:checked) {
+    background: color-mix(in oklch, var(--accent) 8%, transparent);
+  }
+  .row[hidden] {
+    display: none;
+  }
+  .pick input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.3rem;
+    accent-color: var(--accent);
+  }
+  .main {
+    display: grid;
+    gap: 0.2rem;
+  }
+  .title {
+    font-weight: 500;
+  }
+  .id {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .note {
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    padding-left: 0.6rem;
+    border-left: 2px solid color-mix(in oklch, var(--pending) 60%, transparent);
+    margin-top: 0.2rem;
+  }
+  .meta {
+    display: grid;
+    gap: 0.25rem;
+    justify-items: start;
+    align-content: start;
+  }
+  .vis {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .vis.pending {
+    color: var(--pending);
+  }
+  .vis.public {
+    color: var(--ok);
+  }
+  .vis.private {
+    color: var(--muted-status);
+  }
+  .ev,
+  .src {
+    font-size: var(--step--2);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .dock {
+    position: fixed;
+    left: 50%;
+    bottom: 4.5rem;
+    translate: -50% 0;
+    z-index: 80;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: calc(100vw - 2rem);
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-l);
+    background: var(--surface-solid);
+    box-shadow: var(--shadow);
+    font-size: var(--step--1);
+  }
+  .dock code {
+    max-width: 38rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: var(--step--2);
+  }
+  .dock select {
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius-s);
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .copy {
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: var(--accent-fill);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  @media (max-width: 48rem) {
+    .row {
+      grid-template-columns: 2rem minmax(0, 1fr);
+    }
+    .meta {
+      grid-column: 2;
+    }
+  }
+</style>

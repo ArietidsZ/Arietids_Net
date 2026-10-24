@@ -1,0 +1,101 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import SectionHeader from '~/components/ui/SectionHeader.astro';
+import Icon from '~/components/ui/Icon.astro';
+import { formatDate, localePath, t, type Locale } from '~/i18n';
+import { noteSlug } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+  notes: CollectionEntry<'notes'>[];
+  /** On the notes index: list everything and drop the "all notes" link. */
+  all?: boolean;
+}
+const { lang, notes, all = false } = Astro.props;
+const _ = t(lang);
+---
+
+<section id="notes" class="section container" aria-labelledby="notes-title">
+  <SectionHeader lang={lang} k="section.notes" id="notes-title">
+    {!all && <a class="all" href={localePath(lang, '/notes/')}>{_('notes.title')} <Icon name="arrow-right" size={15} /></a>}
+  </SectionHeader>
+  <ul class="list" role="list">
+    {
+      (all ? notes : notes.slice(0, 3)).map((n, i) => (
+        <li data-visibility={n.data.visibility} data-reveal style={`--reveal-i:${i}`}>
+          <a href={localePath(lang, `/notes/${noteSlug(n)}/`)}>
+            <time class="mono" datetime={n.data.date.toISOString()}>
+              {formatDate(n.data.date, lang, 'short')}
+            </time>
+            <span class="text">
+              <span class="title">{n.data.title}</span>
+              <span class="desc">{n.data.description}</span>
+            </span>
+            <Icon name="arrow-right" size={18} class="arrow" />
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .all {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    width: fit-content;
+    font-size: var(--step--1);
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .list {
+    border-top: 1px solid var(--line);
+  }
+  .list a {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr) auto;
+    gap: 1.25rem;
+    align-items: baseline;
+    padding: 1.4rem 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+  time {
+    color: var(--text-faint);
+    text-transform: none;
+  }
+  .text {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    transition: color 0.2s;
+  }
+  .desc {
+    color: var(--text-muted);
+    font-size: var(--step--1);
+  }
+  .list a :global(.arrow) {
+    color: var(--text-faint);
+    transition: transform 0.3s var(--ease-out), color 0.2s;
+  }
+  .list a:hover .title,
+  .list a:hover :global(.arrow) {
+    color: var(--accent);
+  }
+  .list a:hover :global(.arrow) {
+    transform: translateX(4px);
+  }
+  @media (max-width: 40rem) {
+    .list a {
+      grid-template-columns: 1fr auto;
+      gap: 0.4rem 1rem;
+    }
+    time {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

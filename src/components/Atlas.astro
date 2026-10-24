@@ -1,0 +1,1068 @@
+---
+/**
+ * The atlas: a star chart of Aries. Research themes are the stars of the figure that have public
+ * work; each work is a small star on its theme's orbit. Lines, orbits and the graticule are SVG;
+ * stars and labels are HTML placed in percentages, so they stay legible at any width.
+ *
+ * Interaction: theme stars and the panel's theme list are the same filter (`work:filter` events);
+ * hovering a star shows it in the panel. Work stars are mouse shortcuts only; their keyboard path
+ * is the card grid below, so the chart never adds tiny focus targets.
+ *
+ * Every panel state (resting, each theme, each work) is rendered up front and stacked in one grid
+ * cell, so the panel is always as tall as its longest state and hovering never moves the page.
+ * Lines on the chart are knocked out under labels, as on a printed chart (see knockout()).
+ */
+import type { Chart } from '~/lib/aries';
+import Typeset from '~/components/ui/Typeset.astro';
+import { t, type Locale } from '~/i18n';
+import { script } from '~/lib/typeset';
+
+interface Props {
+  lang: Locale;
+  chart: Chart;
+  /** Number of cards per theme, for the filter list. */
+  counts: Record<string, number>;
+  total: number;
+}
+const { lang, chart, counts, total } = Astro.props;
+const _ = t(lang);
+const other: Locale = lang === 'zh' ? 'en' : 'zh';
+const { w, h } = chart;
+const pct = (p: { x: number; y: number }) => `left:${((p.x / w) * 100).toFixed(3)}%;top:${((p.y / h) * 100).toFixed(3)}%`;
+const lit = chart.stars.filter((s) => s.theme);
+const themeStar = new Map(lit.map((s) => [s.theme!.id, s]));
+// Apparent size from magnitude: Hamal (2.0) is the largest; 5.6 is a speck.
+const size = (mag: number) => Math.max(1.6, 9.5 - mag * 1.45);
+const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer + (s.name ? ` · ${s.name}` : '');
+---
+
+<figure class="atlas" data-atlas aria-label={_('atlas.label')}>
+  <div class="chart rim" style={`aspect-ratio:${w}/${h}`} data-chart>
+    <svg class="lines" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <radialGradient id="atlas-vignette" cx="50%" cy="45%" r="70%">
+          <stop offset="0" class="vg-in"></stop>
+          <stop offset="1" class="vg-out"></stop>
+        </radialGradient>
+        {/* Holes under the labels, measured in the browser; without script it masks nothing. */}
+        <mask id="atlas-ko" maskUnits="userSpaceOnUse" x="0" y="0" width={w} height={h}>
+          <rect width={w} height={h} fill="white"></rect>
+          <g data-ko fill="black"></g>
+        </mask>
+      </defs>
+      <rect width={w} height={h} fill="url(#atlas-vignette)"></rect>
+      <g mask="url(#atlas-ko)">
+      <g class="grat">
+        {chart.graticule.map((g) => <path d={g.d} class={g.kind} vector-effect="non-scaling-stroke" />)}
+      </g>
+      <g class="figure">
+        {
+          chart.figure.map((f, i) => (
+            <line
+              x1={f.x1}
+              y1={f.y1}
+              x2={f.x2}
+              y2={f.y2}
+              class:list={['fig', { lit: f.lit }]}
+              style={`--i:${i}`}
+              pathLength="1"
+              vector-effect="non-scaling-stroke"
+            />
+          ))
+        }
+      </g>
+      <g class="orbits">
+        {
+          lit.map((s) => (
+            <circle cx={s.x} cy={s.y} r={s.theme!.orbit} class="orbit" data-orbit={s.theme!.id} vector-effect="non-scaling-stroke" />
+          ))
+        }
+      </g>
+      <g class="links">
+        {
+          chart.works.flatMap((wk) =>
+            wk.secondary.map((th) => {
+              const s = themeStar.get(th)!;
+              return (
+                <line
+                  x1={s.x}
+                  y1={s.y}
+                  x2={wk.x}
+                  y2={wk.y}
+                  class="also"
+                  data-from={`theme:${th}`}
+                  data-to={`work:${wk.id}`}
+                  vector-effect="non-scaling-stroke"
+                />
+              );
+            }),
+          )
+        }
+      </g>
+      <g class="radiant" transform={`translate(${chart.radiant.x} ${chart.radiant.y})`}>
+        <circle r="9" class="rad-ring"></circle>
+        <circle r="17" class="rad-ring dashed"></circle>
+        {
+          Array.from({ length: 12 }, (_, i) => {
+            const a = (i / 12) * Math.PI * 2 + 0.2;
+            const r1 = 24 + (i % 3) * 5;
+            const r2 = r1 + 14 + (i % 2) * 10;
+            return (
+              <line
+                x1={(Math.cos(a) * r1).toFixed(1)}
+                y1={(Math.sin(a) * r1).toFixed(1)}
+                x2={(Math.cos(a) * r2).toFixed(1)}
+                y2={(Math.sin(a) * r2).toFixed(1)}
+                class="ray"
+                style={`--d:${((i * 7) % 12) * 0.45}s`}
+                vector-effect="non-scaling-stroke"
+              />
+            );
+          })
+        }
+      </g>
+      </g>
+    </svg>
+
+    {/* Field and figure stars without a public theme: drawn, never interactive. */}
+    {
+      chart.stars
+        .filter((s) => !s.theme)
+        .map((s, i) => (
+          <span class:list={['fstar', { fig: s.inFigure }]} style={`${pct(s)};--s:${size(s.mag)}px;--tw:${(i % 5) * 0.9}s`} aria-hidden="true">
+            {s.inFigure && <span class="bayer">{s.bayer}</span>}
+          </span>
+        ))
+    }
+
+    <span class="rad-label label" style={pct(chart.radiant)} aria-hidden="true">{_('atlas.radiant')}</span>
+
+    {
+      chart.works.map((wk) => (
+        <span
+          class="wstar"
+          style={pct(wk)}
+          data-node={`work:${wk.id}`}
+          data-theme-id={wk.theme}
+          data-secondary={wk.secondary.join(' ')}
+          data-href={wk.href}
+          data-visibility={wk.visibility}
+          aria-hidden="true"
+        >
+          <span class="core" />
+        </span>
+      ))
+    }
+
+    {
+      lit.map((s) => (
+        <button
+          type="button"
+          class="tstar"
+          style={`${pct(s)};--s:${size(s.mag)}px`}
+          data-node={`theme:${s.theme!.id}`}
+          data-theme-id={s.theme!.id}
+          data-side={s.theme!.side}
+          data-side-short={s.theme!.sideShort}
+          aria-pressed="false"
+        >
+          <span class="core" aria-hidden="true" />
+          <span class="tlabel">
+            <span class="tname">
+              <span class="full">{s.theme!.label}</span>
+              <span class="short">
+                {s.theme!.short}
+                <span class="sr-only"> ({s.theme!.label})</span>
+              </span>
+            </span>
+            <span class="tbayer data">{designation(s)}</span>
+          </span>
+        </button>
+      ))
+    }
+
+    <span class="corner tl label" aria-hidden="true">
+      {_('atlas.constellation')}
+      <span lang={other === 'zh' ? 'zh-CN' : 'en'}>{t(other)('atlas.constellation')}</span>
+    </span>
+    <span class="corner br data" aria-hidden="true">RA 01h–03h · Dec +15°–+30°</span>
+  </div>
+
+  <figcaption class="panel rim">
+    <div class="detail" data-panel>
+      <div class="state rest on" data-state="">
+        <p class="p-meta label">{_('atlas.label')}</p>
+        <p class="p-title">{_('atlas.constellation')}</p>
+        <p class="p-summary">{_('atlas.hintShort')}</p>
+        <ul class="legend label" role="list" aria-hidden="true">
+          <li><span class="lg theme"></span>{_('atlas.legend.theme')}</li>
+          <li><span class="lg work"></span>{_('atlas.legend.work')}</li>
+          <li><span class="lg also"></span>{_('atlas.legend.secondary')}</li>
+          <li><span class="lg rad"></span>{_('atlas.radiant')}</li>
+        </ul>
+      </div>
+      {
+        lit.map((s) => (
+          <div class="state" data-state={`theme:${s.theme!.id}`}>
+            <p class="p-meta designation">{designation(s)}</p>
+            <p class="p-title" data-script={script(s.theme!.label)}>
+              {s.theme!.label}
+            </p>
+            {s.theme!.blurb && (
+              <p class="p-summary">
+                <Typeset text={s.theme!.blurb} />
+              </p>
+            )}
+          </div>
+        ))
+      }
+      {
+        chart.works.map((wk) => (
+          <div class="state" data-state={`work:${wk.id}`} data-visibility={wk.visibility}>
+            <p class="p-meta label">
+              {wk.meta.split(' · ').map((part, i) => (
+                <>
+                  {i > 0 && ' · '}
+                  <span class="nobr">{part}</span>
+                </>
+              ))}
+            </p>
+            <p class="p-title" data-script={script(wk.label)} lang={lang === 'zh' && script(wk.label) === 'latin' ? 'en' : undefined}>
+              <Typeset text={wk.label} split />
+            </p>
+            {wk.summary && (
+              <p class="p-summary">
+                <Typeset text={wk.summary} />
+              </p>
+            )}
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="sr-only" role="status" data-filter-status data-template={_('filter.status')}></p>
+    <div class="filters" role="group" aria-label={_('filter.label')} data-filters>
+      <button type="button" class="filter" aria-pressed="true" data-filter="">
+        <span class="f-dot all" aria-hidden="true"></span>
+        <span class="f-name">{_('filter.all')}</span>
+        <span class="f-count data">{total}</span>
+      </button>
+      {
+        lit
+          .filter((s) => counts[s.theme!.id])
+          .map((s) => (
+            <button type="button" class="filter" aria-pressed="false" data-filter={s.theme!.id}>
+              <span class="f-dot" aria-hidden="true" />
+              <span class="f-name">
+                {s.theme!.label}
+                <span class="f-bayer data">{s.bayer}</span>
+              </span>
+              <span class="f-count data">{counts[s.theme!.id]}</span>
+            </button>
+          ))
+      }
+    </div>
+  </figcaption>
+</figure>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-atlas]').forEach((atlas) => {
+    const tstars = [...atlas.querySelectorAll<HTMLButtonElement>('.tstar')];
+    const wstars = [...atlas.querySelectorAll<HTMLElement>('.wstar')];
+    const filters = [...atlas.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+    const links = [...atlas.querySelectorAll<SVGLineElement>('line.also')];
+    const orbits = [...atlas.querySelectorAll<SVGCircleElement>('[data-orbit]')];
+    const states = [...atlas.querySelectorAll<HTMLElement>('[data-state]')];
+    const rail = atlas.querySelector<HTMLElement>('[data-filters]');
+    const words = (v: string | undefined) => (v ?? '').split(' ').filter(Boolean);
+    let pinned: string | null = null;
+
+    /** Light one theme (and its works), or one work (and its themes); null is the resting chart. */
+    function light(target: { theme?: string | null; work?: HTMLElement } | null) {
+      atlas.toggleAttribute('data-focus', !!(target?.theme || target?.work));
+      const work = target?.work;
+      const theme = target?.theme ?? work?.dataset.themeId ?? null;
+      const extra = new Set(words(work?.dataset.secondary));
+      tstars.forEach((s) => s.classList.toggle('lit', s.dataset.themeId === theme || extra.has(s.dataset.themeId!)));
+      wstars.forEach((s) =>
+        s.classList.toggle('lit', work ? s === work : !!theme && (s.dataset.themeId === theme || words(s.dataset.secondary).includes(theme))),
+      );
+      orbits.forEach((o) => o.classList.toggle('lit', !!theme && o.dataset.orbit === theme));
+      links.forEach((l) => l.classList.toggle('lit', work ? l.dataset.to === work.dataset.node : !!theme && l.dataset.from === `theme:${theme}`));
+    }
+    /** Light the target and show its state in the panel. */
+    function show(target: { theme?: string | null; work?: HTMLElement } | null) {
+      light(target);
+      const key = target?.work ? target.work.dataset.node! : target?.theme ? `theme:${target.theme}` : '';
+      states.forEach((el) => el.classList.toggle('on', el.dataset.state === key));
+    }
+    const rest = () => show(pinned ? { theme: pinned } : null);
+
+    function sync(theme: string | null) {
+      pinned = theme;
+      tstars.forEach((s) => s.setAttribute('aria-pressed', String(s.dataset.themeId === theme)));
+      filters.forEach((f) => f.setAttribute('aria-pressed', String((f.dataset.filter || null) === theme)));
+      rest();
+      // On the chip rail, bring the pressed chip into view (sideways only, never moving the page).
+      const on = filters.find((f) => f.getAttribute('aria-pressed') === 'true');
+      if (rail && on && rail.scrollWidth > rail.clientWidth + 1) {
+        const r = on.getBoundingClientRect();
+        const rr = rail.getBoundingClientRect();
+        if (r.left < rr.left + 4 || r.right > rr.right - 40) {
+          const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off';
+          rail.scrollBy({ left: r.left - rr.left - 12, behavior: still ? 'auto' : 'smooth' });
+        }
+      }
+    }
+    const status = atlas.querySelector<HTMLElement>('[data-filter-status]');
+    function choose(theme: string | null) {
+      sync(theme);
+      document.dispatchEvent(new CustomEvent('work:filter', { detail: theme }));
+      // Say how many items the filter leaves, once per choice (hover never announces).
+      const f = filters.find((x) => (x.dataset.filter || null) === theme);
+      if (status && f) {
+        const name = f.querySelector('.f-name')?.firstChild?.textContent?.trim() ?? '';
+        const n = f.querySelector('.f-count')?.textContent?.trim() ?? '';
+        status.textContent = (status.dataset.template ?? '').replace('{theme}', name).replace('{n}', n);
+      }
+    }
+
+    for (const s of tstars) {
+      s.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && show({ theme: s.dataset.themeId }));
+      s.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && rest());
+      s.addEventListener('focus', () => show({ theme: s.dataset.themeId }));
+      s.addEventListener('blur', rest);
+      s.addEventListener('click', () => choose(pinned === s.dataset.themeId ? null : s.dataset.themeId!));
+    }
+    for (const s of wstars) {
+      s.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && show({ work: s }));
+      s.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && rest());
+      s.addEventListener('click', () => s.dataset.href && (location.href = s.dataset.href));
+    }
+    for (const f of filters) {
+      f.addEventListener('focus', () => f.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+      f.addEventListener('click', () => choose(f.dataset.filter || null));
+      f.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && f.dataset.filter && show({ theme: f.dataset.filter }));
+      f.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && rest());
+    }
+    // A hovered card lights its star; the panel keeps its text, since the card already says it all.
+    document.addEventListener('work:hover', (e) => {
+      const id = (e as CustomEvent<string | null>).detail;
+      const star = id ? wstars.find((s) => s.dataset.node === `work:${id}`) : undefined;
+      light(star ? { work: star } : pinned ? { theme: pinned } : null);
+    });
+    document.addEventListener('work:filter', (e) => {
+      const theme = (e as CustomEvent<string | null>).detail;
+      if (theme !== pinned) sync(theme);
+    });
+
+    // Knock the chart's lines out under every label, so no line strikes through a name.
+    const svg = atlas.querySelector<SVGSVGElement>('svg.lines');
+    const holes = atlas.querySelector<SVGGElement>('[data-ko]');
+    const texts = [...atlas.querySelectorAll<HTMLElement>('.tname .full, .tname .short, .tbayer, .bayer, .rad-label, .corner')];
+    const faint = [...atlas.querySelectorAll<HTMLElement>('.fstar:not(.fig)')];
+    function knockout() {
+      if (!svg || !holes) return;
+      const box = svg.getBoundingClientRect();
+      if (!box.width) return;
+      const k = svg.viewBox.baseVal.width / box.width;
+      const range = document.createRange();
+      const rects: string[] = [];
+      const boxes: DOMRect[] = [];
+      for (const el of texts) {
+        range.selectNodeContents(el);
+        // A short label carries its full name for screen readers; that text is not on the chart.
+        const hidden = el.querySelector('.sr-only');
+        if (hidden) range.setEndBefore(hidden);
+        for (const r of range.getClientRects()) {
+          if (r.width < 3 || r.height < 3) continue;
+          boxes.push(r);
+          const x = (r.left - box.left - 3) * k;
+          const y = (r.top - box.top - 1) * k;
+          rects.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${((r.width + 6) * k).toFixed(1)}" height="${((r.height + 2) * k).toFixed(1)}" rx="${(3 * k).toFixed(1)}"/>`);
+        }
+      }
+      holes.innerHTML = rects.join('');
+      // Faint field stars under a label are left out too.
+      for (const f of faint) {
+        const r = f.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        f.toggleAttribute('data-under', boxes.some((b) => cx > b.left - 4 && cx < b.right + 4 && cy > b.top - 3 && cy < b.bottom + 3));
+      }
+    }
+    if (svg) new ResizeObserver(knockout).observe(svg);
+    document.fonts?.ready.then(knockout);
+
+    // The chip rail fades at its right edge only while a chip is cut off there.
+    const more = () => {
+      const last = filters.at(-1);
+      if (!rail || !last) return;
+      rail.toggleAttribute('data-more', last.getBoundingClientRect().right > rail.getBoundingClientRect().right - 8);
+    };
+    if (rail) {
+      new ResizeObserver(more).observe(rail);
+      rail.addEventListener('scroll', more, { passive: true });
+    }
+  });
+</script>
+
+<style>
+  .atlas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+    gap: 1rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  /* ---------- the chart plate ---------- */
+  .chart {
+    position: relative;
+    border-radius: var(--radius-plate);
+    background:
+      radial-gradient(90% 80% at 60% 35%, var(--plate-hi), transparent 70%),
+      var(--plate);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      inset 0 30px 60px -40px var(--plate-inset),
+      var(--shadow);
+    overflow: hidden;
+    isolation: isolate;
+    --rim-angle: 160deg;
+  }
+  .lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .vg-in {
+    stop-color: var(--accent);
+    stop-opacity: 0.05;
+  }
+  .vg-out {
+    stop-color: var(--accent);
+    stop-opacity: 0;
+  }
+  .grat path {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent-2) 16%, transparent);
+    stroke-width: 1;
+  }
+  .grat .dec {
+    stroke-dasharray: 2 5;
+  }
+  .fig {
+    stroke: color-mix(in oklch, var(--text) 26%, transparent);
+    stroke-width: 1;
+    stroke-linecap: round;
+  }
+  .fig.lit {
+    stroke: color-mix(in oklch, var(--accent) 70%, transparent);
+    stroke-width: 1.5;
+  }
+  .orbit {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 22%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 1 5;
+    stroke-linecap: round;
+    transition: stroke 0.3s;
+  }
+  .orbit.lit {
+    stroke: color-mix(in oklch, var(--accent) 65%, transparent);
+  }
+  .also {
+    stroke: color-mix(in oklch, var(--accent-2) 50%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    transition: stroke 0.3s;
+  }
+  .also.lit {
+    stroke: var(--accent-2);
+  }
+  .rad-ring {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 55%, transparent);
+    stroke-width: 1;
+  }
+  .rad-ring.dashed {
+    stroke-dasharray: 2 4;
+    stroke: color-mix(in oklch, var(--accent) 35%, transparent);
+  }
+  .ray {
+    stroke: var(--accent);
+    stroke-width: 1;
+    stroke-linecap: round;
+    opacity: 0.32;
+  }
+
+  /* Draw the figure in when the chart comes into view. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(:root.js) .atlas .fig {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+    }
+    :global(:root.js) :global(.is-visible) .atlas .fig,
+    :global(:root.js) .atlas:global(.is-visible) .fig {
+      animation: draw 1.4s var(--ease-out) both;
+      animation-delay: calc(0.3s + var(--i) * 0.22s);
+    }
+    .ray {
+      animation: ray 5.4s var(--ease-out) infinite;
+      animation-delay: var(--d);
+    }
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes ray {
+    0%,
+    100% {
+      opacity: 0.18;
+    }
+    8% {
+      opacity: 0.9;
+    }
+    30% {
+      opacity: 0.18;
+    }
+  }
+
+  /* ---------- stars ---------- */
+  .fstar,
+  .wstar,
+  .tstar {
+    position: absolute;
+    translate: -50% -50%;
+  }
+  .fstar {
+    width: var(--s);
+    height: var(--s);
+  }
+  /* The dot is its own layer, so a twinkle never dims the designation beside it. */
+  .fstar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--text) 70%, transparent);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .fstar::before {
+      animation: twinkle 5s ease-in-out infinite;
+      animation-delay: var(--tw);
+    }
+  }
+  .fstar[data-under]::before {
+    display: none;
+  }
+  .fstar.fig::before {
+    background: color-mix(in oklch, var(--text) 85%, transparent);
+    box-shadow: 0 0 calc(var(--s) * 1.5) color-mix(in oklch, var(--text) 35%, transparent);
+  }
+  .bayer {
+    position: absolute;
+    left: calc(100% + 0.45rem);
+    top: 50%;
+    translate: 0 -50%;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  @keyframes twinkle {
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  .wstar {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    cursor: pointer;
+    transition: opacity 0.3s;
+  }
+  .wstar .core {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 50%;
+    background: var(--text);
+    box-shadow: 0 0 8px color-mix(in oklch, var(--text) 45%, transparent);
+    transition:
+      transform 0.3s var(--ease-out),
+      background-color 0.3s;
+  }
+  .wstar:hover .core,
+  .wstar.lit .core {
+    transform: scale(1.6);
+    background: var(--accent-fill-hi);
+  }
+  /* On paper pale gilt vanishes: lit works take the ochre mark colour. */
+  :global(:root[data-theme='day']) .wstar:hover .core,
+  :global(:root[data-theme='day']) .wstar.lit .core {
+    background: var(--mark-core);
+    box-shadow: 0 0 8px var(--glow);
+  }
+
+  .tstar {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    color: var(--text);
+    transition: opacity 0.3s;
+  }
+  .tstar .core {
+    position: relative;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: var(--accent-fill-hi);
+    box-shadow:
+      0 0 0 calc(var(--s) * 0.55) var(--accent-soft),
+      0 0 calc(var(--s) * 3) var(--glow);
+    transition: transform 0.35s var(--ease-out);
+  }
+  /* Diffraction spikes on theme stars. */
+  .tstar .core::before,
+  .tstar .core::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(var(--s) * 4.4);
+    height: 1px;
+    translate: -50% -50%;
+    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--accent-fill-hi) 80%, transparent), transparent);
+  }
+  .tstar .core::after {
+    rotate: 90deg;
+  }
+  :global(:root[data-theme='day']) .tstar .core {
+    background: var(--accent);
+  }
+  .tstar:hover .core,
+  .tstar.lit .core,
+  .tstar:focus-visible .core {
+    transform: scale(1.3);
+  }
+  .tstar[aria-pressed='true']::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1.3rem;
+    height: 1.3rem;
+    translate: -50% -50%;
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 1.5px var(--accent),
+      0 0 24px var(--glow);
+  }
+  /* The focus ring hugs the star, just outside the pressed ring, and clears the label. */
+  .tstar:focus-visible {
+    outline-offset: -0.55rem;
+  }
+  .tlabel {
+    position: absolute;
+    display: grid;
+    gap: 0.05rem;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow:
+      0 0 6px var(--bg-deep),
+      0 0 2px var(--bg-deep);
+  }
+  :global(:root[data-theme='day']) .tlabel {
+    text-shadow:
+      0 0 6px var(--bg),
+      0 0 2px var(--bg);
+  }
+  .tstar[data-side='below'] .tlabel {
+    top: calc(50% + 0.95rem);
+    left: 50%;
+    translate: -50% 0;
+    justify-items: center;
+    text-align: center;
+  }
+  .tstar[data-side='above'] .tlabel {
+    bottom: calc(50% + 0.95rem);
+    left: 50%;
+    translate: -50% 0;
+    justify-items: center;
+    text-align: center;
+  }
+  .tstar[data-side='right'] .tlabel {
+    left: calc(50% + 1rem);
+    top: 50%;
+    translate: 0 -50%;
+  }
+  .tstar[data-side='left'] .tlabel {
+    right: calc(50% + 1rem);
+    top: 50%;
+    translate: 0 -50%;
+    justify-items: end;
+    text-align: right;
+  }
+  .tname {
+    font-family: var(--font-display);
+    font-size: var(--step--1);
+    line-height: 1.25;
+    color: var(--text);
+  }
+  :global(:root:lang(en)) .tname {
+    font-style: italic;
+  }
+  .tbayer {
+    font-size: 0.66rem;
+    color: color-mix(in oklch, var(--accent-2) 85%, var(--text-faint));
+  }
+  .short {
+    display: none;
+  }
+  /* Dim the stars that are not in focus, but keep their labels readable. */
+  [data-focus] .tstar:not(.lit) .core,
+  [data-focus] .wstar:not(.lit) {
+    opacity: 0.4;
+  }
+  [data-focus] .tstar:not(.lit) :is(.tname, .tbayer) {
+    color: var(--text-muted);
+  }
+
+  .rad-label {
+    position: absolute;
+    translate: -50% calc(-50% - 2.5rem);
+    color: var(--accent);
+    font-size: 0.64rem;
+    pointer-events: none;
+  }
+  .corner {
+    position: absolute;
+    pointer-events: none;
+  }
+  :global(:root:lang(zh)) .rad-label {
+    font-size: var(--step--2);
+  }
+  .corner.tl {
+    top: 1rem;
+    left: 1.2rem;
+    display: flex;
+    gap: 0.6rem;
+    color: var(--text-muted);
+  }
+  .corner.tl span {
+    color: var(--text-muted);
+  }
+  /* The chart's coordinates sit in the empty corner opposite the constellation's name. */
+  .corner.br {
+    bottom: 0.9rem;
+    right: 1.2rem;
+    font-size: 0.66rem;
+    color: var(--text-faint);
+  }
+
+  /* ---------- panel ---------- */
+  .panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 1.1rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-plate);
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 0 0 1px var(--line);
+    --rim-angle: 200deg;
+  }
+  /* All states share one cell: the cell takes the tallest, so the panel never changes height. */
+  .detail {
+    display: grid;
+  }
+  .state {
+    grid-area: 1 / 1;
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      opacity 0.2s,
+      visibility 0s 0.2s;
+  }
+  .state.on {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.25s;
+  }
+  /* At rest the key sits on the list, and any spare height falls between it and the intro. */
+  .state.rest {
+    grid-template-rows: auto auto auto 1fr;
+  }
+  .rest .legend {
+    align-self: end;
+  }
+  .p-meta {
+    color: var(--accent);
+  }
+  .p-meta.designation {
+    font-family: var(--font-mono);
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+  .p-title {
+    font-family: var(--font-display);
+    font-size: min(var(--step-1), 1.25rem);
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .p-title:lang(en) {
+    letter-spacing: 0;
+  }
+  .p-summary:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .p-title[data-script='han'] {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .p-title :global(.ts-sub) {
+    font-size: 0.8em;
+  }
+  .p-summary {
+    color: var(--text-muted);
+    font-size: var(--step--1);
+    line-height: 1.6;
+  }
+  .legend {
+    display: grid;
+    margin-top: 0.85rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem 1rem;
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .lg {
+    flex: none;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+  }
+  .lg.theme {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--glow);
+  }
+  .lg.work {
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-inline: 0.1rem;
+    background: var(--text);
+  }
+  .lg.also {
+    width: 1rem;
+    height: 0;
+    border-radius: 0;
+    border-top: 1.5px dashed var(--accent-2);
+  }
+  .lg.rad {
+    width: 0.7rem;
+    height: 0.7rem;
+    box-shadow:
+      inset 0 0 0 1px var(--accent),
+      0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);
+  }
+  .filters {
+    display: grid;
+    align-self: end;
+    gap: 0.15rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+  }
+  .filter {
+    display: grid;
+    grid-template-columns: 0.7rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 2.45rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.7rem;
+    text-align: left;
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  .filter:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+  .filter[aria-pressed='true'] {
+    color: var(--text);
+    background: color-mix(in oklch, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 35%, transparent);
+  }
+  .f-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--glow);
+  }
+  .f-dot.all {
+    background: none;
+    box-shadow: inset 0 0 0 1.5px var(--text-faint);
+  }
+  .f-name {
+    display: grid;
+    line-height: 1.35;
+  }
+  .f-bayer {
+    font-size: 0.66rem;
+    color: var(--text-faint);
+  }
+  .f-count {
+    color: var(--text-faint);
+  }
+  .filter[aria-pressed='true'] .f-count {
+    color: var(--accent);
+  }
+
+  /* Windows high contrast: stars and dots are drawn with backgrounds, so give them system colours. */
+  @media (forced-colors: active) {
+    .fstar::before,
+    .wstar .core,
+    .tstar .core,
+    .lg,
+    .f-dot {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+    .filter[aria-pressed='true'],
+    .tstar[aria-pressed='true'] {
+      outline: 2px solid Highlight;
+      outline-offset: 2px;
+    }
+  }
+
+  /* Below 80rem the chart would be shorter than the panel beside it: stack, with a chip rail. */
+  @media (max-width: 79.99rem) {
+    .atlas {
+      grid-template-columns: 1fr;
+    }
+    .panel {
+      grid-template-rows: auto;
+      padding: 0;
+      background: none;
+      backdrop-filter: none;
+      box-shadow: none;
+    }
+    .panel.rim::after {
+      display: none;
+    }
+    .detail {
+      display: none;
+    }
+    /* The theme list becomes a rail of chips under the chart. */
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-block: -0.3rem;
+      padding: 0.4rem 0.35rem 0.6rem;
+      border-top: 0;
+      overflow-x: auto;
+      scroll-padding-inline: 0.5rem 3rem;
+      scrollbar-width: none;
+    }
+    .filters[data-more] {
+      mask-image: linear-gradient(to right, #000 85%, transparent);
+    }
+    .filter {
+      flex: none;
+      grid-template-columns: auto auto auto;
+      gap: 0.5rem;
+      min-height: 2.5rem;
+      padding: 0 0.9rem;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .filters .filter:last-child {
+      margin-right: 2rem;
+    }
+    .f-bayer {
+      display: none;
+    }
+  }
+  @media (max-width: 40rem) {
+    .chart {
+      border-radius: var(--radius-l);
+    }
+    .tstar {
+      width: 2rem;
+      height: 2rem;
+    }
+    .tname {
+      font-size: var(--step--2);
+    }
+    .full {
+      display: none;
+    }
+    .short {
+      display: inline;
+    }
+    /* Phones place the short label on its own side (see sideShort in lib/aries.ts). */
+    .tstar .tlabel {
+      top: 50% !important;
+      bottom: auto !important;
+      left: 50% !important;
+      right: auto !important;
+      translate: var(--lx) var(--ly) !important;
+    }
+    .tstar[data-side-short='below'] {
+      --lx: -50%;
+      --ly: 0.7rem;
+    }
+    .tstar[data-side-short='above'] {
+      --lx: -50%;
+      --ly: calc(-100% - 0.7rem);
+    }
+    .tstar[data-side-short='right'] {
+      --lx: 0.7rem;
+      --ly: -50%;
+    }
+    .tstar[data-side-short='left'] {
+      --lx: calc(-100% - 0.7rem);
+      --ly: -50%;
+    }
+    .tbayer,
+    .bayer,
+    .corner.br,
+    .rad-label {
+      display: none;
+    }
+    .wstar {
+      pointer-events: none;
+    }
+    .corner.tl {
+      top: 0.7rem;
+      left: 0.9rem;
+    }
+  }
+  @media (max-width: 23.4rem) {
+    .corner.tl {
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+  }
+</style>

@@ -1,0 +1,179 @@
+---
+/**
+ * A small plate cut from the atlas, centred on one work's theme star: the same projection and the
+ * same orbit placement as the home page, with this work's star lit and its neighbours dimmed.
+ */
+import type { Chart } from '~/lib/aries';
+
+interface Props {
+  chart: Chart;
+  workId: string;
+}
+const { chart, workId } = Astro.props;
+const work = chart.works.find((w) => w.id === workId);
+const star = work && chart.stars.find((s) => s.theme?.id === work.theme);
+const W = 320;
+const H = 230;
+const x0 = star ? star.x - W / 2 : 0;
+const y0 = star ? star.y - H / 2 : 0;
+const inView = (p: { x: number; y: number }, m = 20) => p.x > x0 - m && p.x < x0 + W + m && p.y > y0 - m && p.y < y0 + H + m;
+const size = (mag: number) => Math.max(0.8, 4.6 - mag * 0.72);
+const side = star?.theme?.side ?? 'below';
+const secondary = work ? chart.stars.filter((s) => s.theme && work.secondary.includes(s.theme.id)) : [];
+---
+
+{
+  work && star && (
+    <svg class="plate" viewBox={`${x0} ${y0} ${W} ${H}`} role="img" aria-label={`${star.theme!.label} · ${star.bayer}`} data-plate>
+      <g class="grat">
+        {chart.graticule.map((g) => (
+          <path d={g.d} class={g.kind} vector-effect="non-scaling-stroke" />
+        ))}
+      </g>
+      {chart.figure.map((f) => (
+        <line x1={f.x1} y1={f.y1} x2={f.x2} y2={f.y2} class:list={['fig', { lit: f.lit }]} vector-effect="non-scaling-stroke" />
+      ))}
+      {chart.stars
+        .filter((s) => s.theme && s.id !== star.id && inView(s, 120))
+        .map((s) => (
+          <circle cx={s.x} cy={s.y} r={s.theme!.orbit} class="orbit dim" vector-effect="non-scaling-stroke" />
+        ))}
+      <circle cx={star.x} cy={star.y} r={star.theme!.orbit} class="orbit" vector-effect="non-scaling-stroke" />
+      {secondary.map((s) => (
+        <line x1={s.x} y1={s.y} x2={work.x} y2={work.y} class="also" vector-effect="non-scaling-stroke" />
+      ))}
+      {chart.stars
+        .filter((s) => inView(s) && !s.theme)
+        .map((s) => (
+          <circle cx={s.x} cy={s.y} r={size(s.mag)} class="fstar" />
+        ))}
+      {chart.works
+        .filter((w) => w.id !== work.id && inView(w))
+        .map((w) => (
+          <circle cx={w.x} cy={w.y} r="2.4" class="wdim" />
+        ))}
+      {chart.stars
+        .filter((s) => s.theme && inView(s))
+        .map((s) => (
+          <g transform={`translate(${s.x} ${s.y})`} class:list={['tstar', { home: s.id === star.id }]}>
+            <path d="M-11 0H11M0 -11V11" class="spikes" />
+            <circle r={size(s.mag) + 0.8} />
+          </g>
+        ))}
+      <g transform={`translate(${work.x} ${work.y})`} class="this">
+        <circle r="9" class="halo" />
+        <circle r="3.4" class="dot" />
+      </g>
+      <text
+        x={star.x + (side === 'right' ? 16 : side === 'left' ? -16 : 0)}
+        y={star.y + (side === 'above' ? -20 : side === 'below' ? 26 : 3.5)}
+        class="tname"
+        text-anchor={side === 'right' ? 'start' : side === 'left' ? 'end' : 'middle'}
+      >
+        {star.bayer}
+        {star.name && ` · ${star.name}`}
+      </text>
+    </svg>
+  )
+}
+
+<style>
+  .plate {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+  }
+  .grat path {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent-2) 16%, transparent);
+    stroke-width: 1;
+  }
+  .grat .dec {
+    stroke-dasharray: 2 5;
+  }
+  .fig {
+    stroke: color-mix(in oklch, var(--text) 22%, transparent);
+    stroke-width: 1;
+  }
+  .fig.lit {
+    stroke: color-mix(in oklch, var(--accent) 60%, transparent);
+  }
+  .orbit {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 55%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 1 4;
+    stroke-linecap: round;
+  }
+  .orbit.dim {
+    stroke: color-mix(in oklch, var(--accent) 20%, transparent);
+  }
+  .also {
+    stroke: color-mix(in oklch, var(--accent-2) 70%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+  .fstar {
+    fill: color-mix(in oklch, var(--text) 75%, transparent);
+  }
+  .wdim {
+    fill: color-mix(in oklch, var(--text) 45%, transparent);
+  }
+  .tstar circle {
+    fill: color-mix(in oklch, var(--accent) 70%, transparent);
+  }
+  .tstar .spikes {
+    stroke: color-mix(in oklch, var(--accent) 40%, transparent);
+    stroke-width: 0.6;
+  }
+  .tstar.home circle {
+    fill: var(--accent-fill-hi);
+    filter: drop-shadow(0 0 4px var(--glow));
+  }
+  :global(:root[data-theme='day']) .tstar.home circle {
+    fill: var(--accent);
+  }
+  .tstar.home .spikes {
+    stroke: color-mix(in oklch, var(--accent-fill-hi) 80%, transparent);
+  }
+  .this .dot {
+    fill: var(--text);
+  }
+  .this .halo {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1;
+    transform-origin: 0 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .this .halo {
+      animation: halo 2.6s var(--ease-out) infinite;
+    }
+  }
+  @keyframes halo {
+    from {
+      opacity: 0.9;
+      scale: 0.5;
+    }
+    to {
+      opacity: 0;
+      scale: 1.8;
+    }
+  }
+  .tname {
+    paint-order: stroke;
+    stroke: var(--plate);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    fill: var(--text-faint);
+  }
+  @media (max-width: 22.5rem) {
+    .tname {
+      font-size: 11px;
+    }
+  }
+</style>

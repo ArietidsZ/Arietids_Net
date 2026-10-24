@@ -1,0 +1,65 @@
+---
+import Base from '~/layouts/Base.astro';
+import ComingSoon from '~/views/ComingSoon.astro';
+import Hero from '~/components/sections/Hero.astro';
+import About from '~/components/sections/About.astro';
+import Publication from '~/components/sections/Publication.astro';
+import Work from '~/components/sections/Work.astro';
+import Notes from '~/components/sections/Notes.astro';
+import Contact from '~/components/sections/Contact.astro';
+import { site } from '~/config/site';
+import { availableSections } from '~/lib/sections';
+import type { Locale } from '~/i18n';
+import { getFacts, getHonors, getNotes, getThemes, getTimeline, getWork } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const facts = await getFacts();
+const ready = facts.has('identity.name');
+
+const [work, themes, timeline, honors, notes] = await Promise.all([
+  getWork(),
+  getThemes(),
+  getTimeline(),
+  getHonors(),
+  getNotes(lang),
+]);
+const papers = work.filter((w) => w.data.kind === 'publication' && w.data.featured);
+
+const available = await availableSections(lang);
+const order = site.sections.filter((id) => available[id]);
+---
+
+{
+  ready ? (
+    <Base lang={lang}>
+      <Hero lang={lang} facts={facts} hasWork={available.work} />
+      {order.map((id) =>
+        id === 'about' ? (
+          <About lang={lang} facts={facts} honors={honors} timeline={timeline} work={work} />
+        ) : id === 'publication' ? (
+          <Publication lang={lang} papers={papers} />
+        ) : id === 'work' ? (
+          <Work
+            lang={lang}
+
+            work={work}
+            themes={themes}
+            featuredIds={available.publication ? papers.map((p) => p.id) : []}
+            github={facts.get('identity.github')}
+          />
+        ) : id === 'notes' ? (
+          <Notes lang={lang} notes={notes} />
+        ) : id === 'contact' ? (
+          <Contact lang={lang} facts={facts} />
+        ) : null,
+      )}
+    </Base>
+  ) : (
+    <Base lang={lang} bare>
+      <ComingSoon lang={lang} />
+    </Base>
+  )
+}

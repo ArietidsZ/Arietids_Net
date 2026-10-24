@@ -1,0 +1,193 @@
+- id: "hierarchical-embodied-medical-ai"
+  visibility: "public"
+  kind: "publication"
+  featured: true
+  order: 1
+  title: "Hierarchical Frameworks for Embodied Medical AI"
+  summary:
+    zh: "综述论文，讨论医疗场景下具身智能系统的分层框架。"
+    en: "A survey paper."
+  role:
+    zh: "唯一作者"
+    en: "Sole author"
+  status: "published"
+  year: 2025
+  themes:
+    - "embodied"
+  citation:
+    authors:
+      - "Zhibo Zhong"
+    venue: "ITM Web of Conferences"
+    volume: "80"
+    article: "01037"
+    year: 2025
+    published: "2025-12-16"
+    conference: "ACAAI 2025"
+    doi: "10.1051/itmconf/20258001037"
+    license: "CC BY 4.0"
+    pages: 7
+  links:
+    - label: "DOI"
+      url: "https://doi.org/10.1051/itmconf/20258001037"
+      kind: "doi"
+    - label:
+        zh: "出版方页面"
+        en: "Publisher"
+      url: "https://www.itm-conferences.org/articles/itmconf/abs/2025/11/itmconf_acaa\
+        i2025_01037/itmconf_acaai2025_01037.html"
+      kind: "paper"
+- id: "efficient-vla"
+  visibility: "public"
+  kind: "research"
+  order: 2
+  title: "Toward Efficient Vision-Language-Action Robotics"
+  summary:
+    zh: "团队项目，研究更高效的机器人 VLA 模型。"
+    en: "A team project on more efficient vision-language-action models for robots."
+  role:
+    zh: "协调团队，参与方法设计、代码和评估，承担主要技术写作"
+    en: "Coordinated the team, contributed to method design, code and evaluation,
+      and did the main technical writing"
+  status: "archived"
+  statusNote:
+    zh: "研讨班项目"
+    en: "Seminar project"
+  year: 2025
+  period:
+    zh: "2025.07-08"
+    en: "Jul-Aug 2025"
+  themes:
+    - "learning"
+    - "embodied"
+  stack:
+    - "Python"
+    - "Mamba"
+  links:
+    - label: "GitHub"
+      url: "https://github.com/ArietidsZ/vision-language-action"
+      kind: "repo"
+  caveats:
+    - zh: "报告和 README 的指标口径不一致。"
+      en: "The report and the README define the metrics differently."
+    - zh: "这项工作没有正式发表，也没有实体机器人上的部署结果。"
+      en: "The work is not formally published and has no deployment results on a
+        physical robot."
+- id: "auralis"
+  visibility: "public"
+  kind: "project"
+  order: 5
+  title: "Auralis"
+  summary:
+    zh: "原生手机应用，目标是在手机本地完成语音识别、翻译和语音合成。"
+    en: "A native mobile app for on-device speech recognition, translation and
+      speech synthesis."
+  status: "preview"
+  year: 2026
+  themes:
+    - "local"
+  stack:
+    - "Kotlin"
+    - "Jetpack Compose"
+    - "SwiftUI"
+    - "ONNX Runtime"
+  highlights:
+    - zh: "Android 有 APK 预发布版。"
+      en: "There is an Android APK pre-release."
+  caveats:
+    - zh: "iOS 还没有安装包。"
+      en: "There is no iOS build yet."
+    - zh: "模型清单还是草稿，真机上的质量、功耗、发热和延迟都还没测完。"
+      en: "The model list is still a draft, and quality, power use, heat and latency
+        on real phones have not been fully measured."
+  links:
+    - label: "GitHub"
+      url: "https://github.com/ArietidsZ/auralis"
+      kind: "repo"
+- id: "video-rss-aggregator"
+  visibility: "public"
+  kind: "project"
+  order: 6
+  title: "Video RSS Aggregator"
+  summary:
+    zh: "把订阅的视频整理成摘要和 RSS，并附上原视频链接。"
+    en: "Turns video subscriptions into readable summaries and RSS feeds that link
+      back to the source."
+  status: "framework"
+  themes:
+    - "local"
+  stack:
+    - "SQLite"
+    - "ffmpeg"
+  highlights:
+    - zh: "任务队列会持久化保存。"
+      en: "The job queue is persistent."
+    - zh: "摘要可以来自字幕、语音识别或视频画面。"
+      en: "Summaries can come from subtitles, speech recognition or video frames."
+  caveats:
+    - zh: "真实视频上的语音识别效果和几项性能实验都还没有验证。"
+      en: "Speech recognition on real videos and several performance experiments have
+        not been verified yet."
+  links:
+    - label: "GitHub"
+      url: "https://github.com/ArietidsZ/Video-RSS-Aggregator"
+      kind: "repo"
+- id: "feature-emergence-survey"
+  visibility: "public"
+  kind: "writing"
+  order: 7
+  title: "From Scaling Laws to Learning Dynamics"
+  subtitle: "A Survey of Feature Emergence and Generalization in Neural Networks"
+  summary:
+    zh: "课程综述，讨论神经网络的特征学习、泛化与学习动态。"
+    en: "A course survey of feature learning, generalization and learning dynamics
+      in neural networks."
+  description:
+    zh: "梳理神经切线核与惰性训练、特征学习、grokking 和分阶段学习之间的联系。"
+    en: "Reviews connections between neural tangent kernels, lazy training, feature
+      learning, grokking and staged learning."
+  status: "coursework"
+  statusNote:
+    zh: "课程综述"
+    en: "Course survey"
+  themes:
+    - "learning"
+- id: "precision-medicine-essay"
+  visibility: "public"
+  kind: "writing"
+  order: 8
+  title:
+    zh: "基于人工智能的全流程精准医疗及其规范化"
+    en: "AI across the precision-medicine pipeline"
+  summary:
+    zh: "课程论文，讨论 AI 在预防、诊断、治疗、监督和可及性各环节的作用与规范。"
+    en: "A course paper on AI in prevention, diagnosis, treatment, oversight and
+      access, and how to regulate it."
+  description:
+    zh: "从医疗数据整合与云边协同出发，讨论 AI 贯穿诊疗流程的应用设想及使用规范。"
+    en: "Discusses medical data integration, cloud-edge collaboration and proposals
+      for using and governing AI throughout care."
+  status: "coursework"
+  themes:
+    - "embodied"
+- id: "linear-algebra-invariants"
+  visibility: "public"
+  kind: "writing"
+  order: 9
+  title:
+    zh: "线性代数中的那些不变量——从翻棋游戏谈起"
+    en: "Invariants in Linear Algebra: Starting from a Board-Flipping Game"
+  summary:
+    zh: "课程报告，从翻棋游戏出发，讨论线性代数中的不变量与标准形。"
+    en: "A course report on invariants and canonical forms in linear algebra,
+      starting from a board-flipping game."
+  description:
+    zh: "以有限域模型分析翻棋操作，梳理矩阵变换、等价关系与分类，并联系机器学习中的不变性。"
+    en: "Uses a finite-field model of board-flipping operations to discuss matrix
+      transformations, equivalence and classification, with connections to
+      invariance in machine learning."
+  status: "coursework"
+  statusNote:
+    zh: "课程报告"
+    en: "Course report"
+  themes:
+    - "learning"

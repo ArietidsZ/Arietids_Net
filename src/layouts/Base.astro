@@ -1,0 +1,155 @@
+---
+import '~/styles/global.css';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { validatePublicOg } from '../../scripts/og-approval.mjs';
+import SiteHeader from '~/components/SiteHeader.astro';
+import SiteFooter from '~/components/SiteFooter.astro';
+import PreviewBar from '~/components/PreviewBar.astro';
+import Cosmos from '~/components/Cosmos.astro';
+import { htmlLang, localePath, locales, ogLocale, t, tr, unlocalizedPath, type Locale } from '~/i18n';
+import { getFacts, getNotes, isPreview, isSiteReady } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+  title?: string;
+  description?: string;
+  type?: 'website' | 'article';
+  /** Locales this page exists in; defaults to all. Used for hreflang and the language switch. */
+  alternates?: readonly Locale[];
+  noindex?: boolean;
+  bare?: boolean;
+}
+
+const { lang, title, description, type = 'website', alternates = locales, noindex = false, bare = false } = Astro.props;
+const _ = t(lang);
+const facts = await getFacts();
+const ready = await isSiteReady();
+const name = facts.get('identity.name');
+const alias = tr(facts.get('identity.alias')?.text, lang);
+const siteTitle = [tr(name?.text, lang), alias].filter(Boolean).join(' · ') || _('site.name');
+const pageTitle = title ? `${title} · ${siteTitle}` : siteTitle;
+const pageDescription = description ?? (tr(facts.get('site.description')?.text, lang) || _('site.descriptionAnonymous'));
+
+const path = unlocalizedPath(Astro.url.pathname);
+const canonical = new URL(localePath(lang, path), Astro.site);
+const ogFile = resolve('public/og.png');
+const ogImage = existsSync(ogFile) && ready && validatePublicOg(process.cwd(), ogFile).length === 0
+  ? new URL('/og.png', Astro.site).href
+  : undefined;
+const robots = noindex || isPreview ? 'noindex, nofollow' : undefined;
+const hasFeed = ready && (await getNotes(lang)).length > 0;
+
+const github = facts.get('identity.github');
+const email = facts.get('contact.email');
+const jsonLd = name && {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: tr(name.text, 'en'),
+  alternateName: [tr(name.text, 'zh'), tr(facts.get('identity.alias')?.text, 'en')].filter(Boolean),
+  url: new URL('/', Astro.site).href,
+  ...(email?.text ? { email: tr(email.text, 'en') } : {}),
+  ...(github?.url ? { sameAs: [github.url] } : {}),
+};
+---
+
+<!doctype html>
+<html lang={htmlLang[lang]} data-theme="night" data-marks={isPreview ? 'on' : undefined}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    {robots && <meta name="robots" content={robots} />}
+    <link rel="canonical" href={canonical} />
+    {
+      alternates.map((l) => (
+        <link rel="alternate" hreflang={htmlLang[l]} href={new URL(localePath(l, path), Astro.site)} />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={new URL(localePath('zh', path), Astro.site)} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {hasFeed && <link rel="alternate" type="application/rss+xml" title={`${siteTitle} RSS`} href={localePath(lang, '/rss.xml').replace(/\/$/, '')} />}
+    <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f3ea" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="generator" content={Astro.generator} />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={siteTitle} />
+    <meta property="og:locale" content={ogLocale[lang]} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+
+    <!-- Returning from a work page: its title shrinks back into the matching card (see scripts/transitions.ts). -->
+    <script is:inline>
+      addEventListener('pagereveal', (e) => {
+        const from = window.navigation && navigation.activation && navigation.activation.from;
+        const m = e.viewTransition && from && from.url && from.url.match(/\/work\/([^/]+)\/?$/);
+        if (!m || /\/work\/[^/]+\/?$/.test(location.pathname)) return;
+        const el = document.querySelector('[data-vt-title="' + CSS.escape(m[1]) + '"]');
+        if (!el) return;
+        el.style.viewTransitionName = 't-' + m[1];
+        e.viewTransition.finished.finally(() => (el.style.viewTransitionName = ''));
+      });
+    </script>
+
+    <!-- Theme before first paint: saved choice, else the OS preference. -->
+    <script is:inline>
+      (() => {
+        const d = document.documentElement;
+        d.classList.add('js');
+        let theme;
+        try {
+          if (localStorage.getItem('motion') === 'off') d.dataset.motion = 'off';
+          theme = localStorage.getItem('theme');
+          if (d.dataset.marks && localStorage.getItem('marks') === 'off') d.dataset.marks = 'off';
+        } catch {}
+        if (theme !== 'day' && theme !== 'night')
+          theme = matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'night';
+        d.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">{_('nav.skip')}</a>
+    <Cosmos />
+    {isPreview && <PreviewBar lang={lang} />}
+    {!bare && <SiteHeader lang={lang} alternates={alternates} ready={ready} />}
+    <main id="main">
+      <slot />
+    </main>
+    {!bare && <SiteFooter lang={lang} />}
+    <div class="sr-only" role="status" aria-live="polite" data-status></div>
+  </body>
+</html>
+
+<script>
+  import '~/scripts/reveal';
+  import '~/scripts/transitions';
+</script>
+
+<style>
+  .skip {
+    position: fixed;
+    left: 1rem;
+    top: 0.75rem;
+    z-index: 200;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-s);
+    background: var(--accent-fill);
+    color: var(--accent-ink);
+    font-weight: 600;
+    text-decoration: none;
+    translate: 0 -200%;
+    transition: translate 0.2s var(--ease-out);
+  }
+  .skip:focus-visible {
+    translate: 0 0;
+  }
+</style>

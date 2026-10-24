@@ -1,0 +1,173 @@
+---
+/**
+ * Not found: the instrument is here but empty. Night sends the odd meteor out from behind the
+ * ring; day sweeps the scope and finds no echo at this address.
+ */
+import Base from '~/layouts/Base.astro';
+import Icon from '~/components/ui/Icon.astro';
+import { localePath, t } from '~/i18n';
+import { isSiteReady } from '~/lib/content';
+
+const _zh = t('zh');
+const _en = t('en');
+const ready = await isSiteReady();
+const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
+---
+
+<Base lang="zh" title="404" noindex alternates={['zh']} bare={!ready}>
+  <section class="nf">
+    <canvas class="sky" data-sky aria-hidden="true"></canvas>
+    <div class="container inner">
+      <div class="ring" data-anchor aria-hidden="true">
+        <svg viewBox="0 0 400 400" data-loop>
+          <circle cx="200" cy="200" r="194" class="hair"></circle>
+          {
+            ticks.map((deg) => (
+              <line x1="200" y1={deg % 30 === 0 ? 6 : 10} x2="200" y2="15" transform={`rotate(${deg} 200 200)`} class:list={['tick', { major: deg % 30 === 0 }]} />
+            ))
+          }
+          <circle cx="200" cy="200" r="150" class="dash"></circle>
+          <circle cx="200" cy="200" r="104" class="dash faint"></circle>
+          <path d="M200 60V120M200 280V340M60 200H120M280 200H340" class="cross"></path>
+        </svg>
+        <span class="code">404</span>
+        <span class="echo label">{_zh('404.echo')} · <span lang="en">{_en('404.echo')}</span></span>
+      </div>
+      <h1>{_zh('404.title')}</h1>
+      <p class="body">{_zh('404.body')}</p>
+      <p class="body en" lang="en">{_en('404.title')}. {_en('404.body')}</p>
+      <div class="links">
+        <a class="btn btn-primary" href={localePath('zh', '/')}>
+          <Icon name="arrow-left" size={16} />
+          {_zh('404.home')}
+        </a>
+        <a class="btn btn-ghost" href={localePath('en', '/')} lang="en">{_en('404.home')}</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { mountSky } from '~/scripts/sky';
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-sky]');
+  if (canvas) {
+    const root = canvas.closest('.nf');
+    mountSky(canvas, {
+      radiant: { x: 0.5, y: 0.35 },
+      anchor: root?.querySelector<HTMLElement>('[data-anchor]'),
+      shield: [...(root?.querySelectorAll<HTMLElement>('h1, .body, .links') ?? [])],
+      rate: 2200,
+      nebula: false,
+      // The scope sweeps this address and finds nothing.
+      echoes: false,
+    });
+  }
+</script>
+
+<style>
+  .nf {
+    position: relative;
+    isolation: isolate;
+    overflow: clip;
+    min-height: calc(100svh - var(--header-h) - 5rem);
+    margin-top: calc(-1 * var(--header-h));
+    padding-top: var(--header-h);
+    display: grid;
+    align-items: center;
+    background: linear-gradient(to bottom, var(--bg-deep), transparent);
+  }
+  .sky {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    mask-image: linear-gradient(to bottom, #000 65%, transparent);
+  }
+  .inner {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 0.9rem;
+    padding-block: 2.5rem 3.5rem;
+  }
+  .ring {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(17rem, 64vw);
+    aspect-ratio: 1;
+    margin-bottom: 0.75rem;
+  }
+  .ring svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ring svg {
+      animation: turn 120s linear infinite;
+    }
+  }
+  @keyframes turn {
+    to {
+      rotate: 360deg;
+    }
+  }
+  .hair {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 45%, transparent);
+  }
+  .tick {
+    stroke: var(--text-faint);
+    opacity: 0.5;
+  }
+  .tick.major {
+    stroke: var(--accent);
+    opacity: 0.9;
+    stroke-width: 1.4;
+  }
+  .dash {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 40%, transparent);
+    stroke-dasharray: 1 7;
+    stroke-linecap: round;
+  }
+  .dash.faint {
+    stroke: var(--line-strong);
+  }
+  .cross {
+    stroke: var(--line-strong);
+  }
+  .code {
+    font-family: var(--font-display);
+    font-size: clamp(3.2rem, 2.4rem + 4vw, 5rem);
+    font-variation-settings: 'opsz' 144;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .echo {
+    position: absolute;
+    bottom: 26%;
+    color: var(--accent);
+  }
+  h1 {
+    font-size: var(--step-3);
+  }
+  .body {
+    color: var(--text-muted);
+  }
+  .body.en {
+    font-size: var(--step--1);
+    color: var(--text-faint);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+</style>

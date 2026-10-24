@@ -1,0 +1,108 @@
+---
+/** Floating bar shown only in preview mode. Never rendered in public builds. */
+import { t, type Locale } from '~/i18n';
+import { pendingCount } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const _ = t(lang);
+const n = await pendingCount();
+---
+
+<aside class="preview-bar" data-preview-bar aria-label={_('preview.label')}>
+  <span class="dot" aria-hidden="true"></span>
+  <strong>{_('preview.label')}</strong>
+  <span class="count">{_('preview.pending', { n })}</span>
+  <label class="marks" title={_('preview.hint')}>
+    <input type="checkbox" data-marks-toggle checked />
+    <span>{_('preview.marks')}</span>
+  </label>
+  <a href="/review/">{_('preview.review')}</a>
+</aside>
+
+<script>
+  const root = document.documentElement;
+  const box = document.querySelector<HTMLInputElement>('[data-marks-toggle]');
+  if (box) {
+    box.checked = root.dataset.marks !== 'off';
+    box.addEventListener('change', () => {
+      root.dataset.marks = box.checked ? 'on' : 'off';
+      try {
+        localStorage.setItem('marks', box.checked ? 'on' : 'off');
+      } catch {}
+    });
+  }
+</script>
+
+<style>
+  .preview-bar {
+    position: fixed;
+    left: 50%;
+    bottom: max(0.9rem, env(safe-area-inset-bottom));
+    translate: -50% 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.6rem 0.45rem 0.9rem;
+    border: 1px solid color-mix(in oklch, var(--pending) 45%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--surface-solid) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    font-size: var(--step--2);
+    white-space: nowrap;
+    max-width: calc(100vw - 1.5rem);
+  }
+  strong {
+    color: var(--pending);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--pending);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--pending) 22%, transparent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    50% {
+      box-shadow: 0 0 0 7px color-mix(in oklch, var(--pending) 5%, transparent);
+    }
+  }
+  .count {
+    color: var(--text-muted);
+  }
+  .marks {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .marks input {
+    accent-color: var(--pending);
+  }
+  a {
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    background: var(--pending);
+    color: var(--pending-ink);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--pending-ink);
+    filter: brightness(1.08);
+  }
+  @media (max-width: 34rem) {
+    .count {
+      display: none;
+    }
+  }
+</style>

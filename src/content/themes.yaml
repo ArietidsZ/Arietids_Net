@@ -1,0 +1,33 @@
+# 研究主题 / Themes
+# 每个主题是星图上的一颗亮星，按白羊座的星形排布；没有公开作品的主题不会出现在星图上。
+# 坐标范围 x: 0-1000, y: 0-600。新增主题时也需在 content.config.ts 的 themeId 中登记。
+
+- id: embodied
+  order: 1
+  star: Hamal · α Ari
+  x: 440
+  y: 250
+  magnitude: 1.6
+  label: { zh: 具身智能与医疗 AI, en: Embodied & medical AI }
+  short: { zh: 具身, en: Embodied }
+  blurb: { zh: 医疗和物理世界里的 AI 系统。, en: AI systems for medicine and the physical world. }
+
+- id: learning
+  order: 2
+  star: Sheratan · β Ari
+  x: 245
+  y: 340
+  magnitude: 1.2
+  label: { zh: 模型与学习, en: Models & learning }
+  short: { zh: 模型, en: Models }
+  blurb: { zh: 更高效的 VLA 模型。, en: More efficient vision-language-action models. }
+
+- id: local
+  order: 4
+  star: Botein · δ Ari
+  x: 735
+  y: 455
+  magnitude: 1.1
+  label: { zh: 本地 AI 工具, en: Local AI tools }
+  short: { zh: 本地工具, en: Local tools }
+  blurb: { zh: 在自己设备上运行的语音和视频工具。, en: Speech and video tools that run on your own devices. }

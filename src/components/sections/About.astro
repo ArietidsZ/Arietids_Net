@@ -1,0 +1,449 @@
+---
+/**
+ * Profile at a glance. The trajectory leads, drawn as a meteor trail that burns from the first
+ * step to the latest one and continues as a dotted course into what comes next. Below it, study
+ * and honors sit as two open columns on the sky (no boxes).
+ */
+import type { CollectionEntry } from 'astro:content';
+import SectionHeader from '~/components/ui/SectionHeader.astro';
+import { localePath, t, tr, type Locale } from '~/i18n';
+import type { Facts } from '~/lib/content';
+import Typeset from '~/components/ui/Typeset.astro';
+import { clauses, ranges } from '~/lib/typeset';
+
+interface Props {
+  lang: Locale;
+  facts: Facts;
+  honors: CollectionEntry<'honors'>[];
+  timeline: CollectionEntry<'timeline'>[];
+  work: CollectionEntry<'work'>[];
+}
+const { lang, facts, honors, timeline, work } = Astro.props;
+const _ = t(lang);
+const bio = facts.get('about.bio');
+const interests = facts.get('interests.current');
+const school = facts.get('education.current');
+
+const sheet = (
+  [
+    ['about.grades', 'academic.grades'],
+    ['about.english', 'academic.english'],
+  ] as const
+)
+  .map(([label, id]) => ({ label, fact: facts.get(id) }))
+  .filter((r) => r.fact !== undefined);
+
+const workById = new Map(work.map((w) => [w.id, w]));
+const nowIndex = timeline.findLastIndex((i) => !i.data.future);
+---
+
+<section id="about" class="section container" aria-labelledby="about-title">
+  <SectionHeader lang={lang} k="section.about" id="about-title" />
+
+  {
+    bio?.list && (
+      <div class="bio" data-visibility={bio.visibility} data-reveal>
+        {bio.list.map((p, i) => (
+          <p class:list={{ lead: i === 0 }}>{tr(p, lang)}</p>
+        ))}
+      </div>
+    )
+  }
+
+  {
+    timeline.length > 0 && (
+      <div class="trajectory" data-reveal>
+        <h3 class="label" id="about-trajectory">{_('section.trajectory')}</h3>
+        <ol class="track" role="list" aria-labelledby="about-trajectory" style={`--n:${timeline.length}`}>
+          {timeline.map((item, i) => {
+            const link = item.data.work.map((id) => workById.get(id)).find((w) => w !== undefined);
+            return (
+              <li
+                class:list={['step', { future: item.data.future, now: i === nowIndex, lit: i < nowIndex, next: i === nowIndex }]}
+                style={`--i:${i}`}
+                data-visibility={item.data.visibility}
+              >
+                <span class="when">{ranges(tr(item.data.when, lang))}</span>
+                <span class="node" aria-hidden="true" />
+                <span class="what">
+                  {link ? <a href={localePath(lang, `/work/${link.id}/`)}>{tr(item.data.title, lang)}</a> : tr(item.data.title, lang)}
+                </span>
+                {item.data.body && <span class="body">{tr(item.data.body, lang)}</span>}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    )
+  }
+
+  <div class="columns">
+    <div class="col study" data-reveal style="--reveal-i:1">
+      <h3 class="label" id="about-study">{_('about.study')}</h3>
+      {
+        school && (
+          <p class="school" data-visibility={school.visibility}>
+            {clauses(tr(school.text, lang)).map((c, i) => (
+              <>
+                <span class:list={['clause', { minor: i > 0 }]}>{c.text}</span>
+                {c.gap}
+              </>
+            ))}
+          </p>
+        )
+      }
+      <dl class="sheet">
+        {
+          sheet.map((r) => (
+            <div class="row" data-visibility={r.fact!.visibility}>
+              <dt class="label">{_(r.label)}</dt>
+              <dd>
+                <Typeset text={ranges(tr(r.fact!.short ?? r.fact!.text, lang))} />
+              </dd>
+            </div>
+          ))
+        }
+        {
+          interests?.list && (
+            <div class="row" data-visibility={interests.visibility}>
+              <dt class="label">{_('about.interests')}</dt>
+              <dd>{interests.list.map((x) => tr(x, lang)).join(' · ')}</dd>
+            </div>
+          )
+        }
+      </dl>
+    </div>
+
+    {
+      honors.length > 0 && (
+        <div class="col" data-reveal style="--reveal-i:2">
+          <h3 class="label" id="about-honors">{_('about.honors')}</h3>
+          <ul role="list" class="honors" aria-labelledby="about-honors">
+            {honors.map((h) => (
+              <li data-visibility={h.data.visibility}>
+                <span class="date data">{ranges(h.data.date)}</span>
+                <span class="honor">
+                  <Typeset text={tr(h.data.title, lang)} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  /* Sub-section titles are headings for navigation, set in the small label style. */
+  h3.label {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  :global(:root:lang(zh)) h3.label {
+    font-family: var(--font-sans);
+  }
+  .bio {
+    display: grid;
+    gap: 0.9rem;
+    max-width: 44rem;
+    margin-bottom: 2.5rem;
+  }
+  .bio p {
+    color: var(--text-muted);
+  }
+  .bio .lead {
+    font-size: var(--step-1);
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  /* ---------- trajectory ---------- */
+  .trajectory {
+    display: grid;
+    gap: 1.1rem;
+  }
+  .track {
+    --dot: 0.85rem;
+    --gap: 1rem;
+    --seg: 0.75s;
+    --when-h: 2.2rem;
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: var(--gap);
+  }
+  .step {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto var(--dot) auto auto;
+    align-content: start;
+    min-width: 0;
+  }
+  .when {
+    height: var(--when-h);
+    margin-bottom: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-variant-numeric: lining-nums tabular-nums;
+    line-height: 1.1;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .future .when {
+    color: var(--text-faint);
+  }
+  /* Each step draws the segment to the next node. */
+  .step::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--dot) / 2);
+    width: calc(100% + var(--gap));
+    top: calc(var(--when-h) + var(--dot) / 2);
+    height: 1.5px;
+    translate: 0 -50%;
+    transform-origin: 0 50%;
+  }
+  .step.lit::before {
+    background: linear-gradient(
+      to right,
+      color-mix(in oklch, var(--accent) calc(30% + var(--i) * 18%), transparent),
+      color-mix(in oklch, var(--accent) calc(48% + var(--i) * 18%), transparent)
+    );
+  }
+  .step.next::before {
+    height: 0;
+    border-top: 1.5px dotted color-mix(in oklch, var(--text-faint) 80%, transparent);
+    translate: 0 -0.75px;
+  }
+  .step:last-child::before {
+    display: none;
+  }
+  .node {
+    position: relative;
+    z-index: 1;
+    width: var(--dot);
+    height: var(--dot);
+    border-radius: 50%;
+    background: var(--bg);
+    box-shadow:
+      inset 0 0 0 1.5px var(--accent),
+      0 0 0 4px var(--bg);
+  }
+  .now .node {
+    background: var(--mark-core);
+    box-shadow:
+      0 0 0 4px var(--bg),
+      0 0 0 5.5px var(--mark-ring),
+      0 0 18px 4px var(--glow);
+  }
+  .future .node {
+    box-shadow:
+      inset 0 0 0 1.5px var(--text-faint),
+      0 0 0 4px var(--bg);
+  }
+  .what {
+    margin-top: 0.85rem;
+    font-size: var(--step-0);
+    font-weight: 500;
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+  .what a {
+    text-decoration-color: color-mix(in oklch, var(--accent) 50%, transparent);
+  }
+  .body {
+    margin-top: 0.25rem;
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* The trail burns in segment by segment when it enters view, ending in a flare at "now". */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(:root.js) .track .step.lit::before,
+    :global(:root.js) .track .step.next::before {
+      scale: 0 1;
+    }
+    :global(:root.js) .is-visible .track .step.lit::before,
+    :global(:root.js) .is-visible .track .step.next::before {
+      animation: burn var(--seg) var(--ease-in-out) both;
+      animation-delay: calc(0.3s + var(--i) * var(--seg) * 0.55);
+    }
+    :global(:root.js) .is-visible .track .now .node {
+      animation: flare 1.6s var(--ease-out) both;
+      animation-delay: calc(0.3s + var(--i) * var(--seg) * 0.55);
+    }
+  }
+  @keyframes burn {
+    to {
+      scale: 1 1;
+    }
+  }
+  @keyframes flare {
+    0% {
+      scale: 0.6;
+      filter: brightness(1);
+    }
+    30% {
+      scale: 1.5;
+      filter: brightness(1.6);
+    }
+    100% {
+      scale: 1;
+      filter: brightness(1);
+    }
+  }
+
+  /* ---------- study and honors ---------- */
+  .columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  }
+  .col {
+    display: grid;
+    gap: 0.9rem;
+    align-content: start;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+  .col > .label {
+    color: var(--accent);
+  }
+  .school {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+  .clause {
+    display: inline-block;
+  }
+  .clause.minor {
+    color: var(--text-muted);
+  }
+  .sheet {
+    display: grid;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-top: 1px dashed var(--line);
+    font-size: var(--step--1);
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
+  }
+  .row dt {
+    padding-top: 0.15rem;
+  }
+  .honors {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .honors li {
+    display: grid;
+    grid-template-columns: 4.6rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+    font-size: var(--step-0);
+    line-height: 1.55;
+  }
+  .date {
+    color: var(--accent);
+  }
+  .honor {
+    text-wrap: balance;
+  }
+  .honor:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .what,
+  .body {
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 56rem) {
+    .columns {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+  /* Phones and narrow tablets: the trajectory runs down the page. */
+  @media (max-width: 48rem) {
+    .track {
+      grid-template-columns: 1fr;
+      gap: 1.15rem;
+    }
+    .track {
+      --when-w: 6.2rem;
+    }
+    .track:lang(en) {
+      --when-w: 7.8rem;
+    }
+    .step {
+      grid-template-columns: var(--dot) var(--when-w) minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      column-gap: 0.9rem;
+    }
+    .step::before {
+      left: calc(var(--dot) / 2);
+      top: calc(var(--dot) / 2 + 0.35rem);
+      width: 1.5px;
+      height: calc(100% + 1.15rem);
+      translate: -50% 0;
+      transform-origin: 50% 0;
+    }
+    .step.lit::before {
+      background: linear-gradient(
+        to bottom,
+        color-mix(in oklch, var(--accent) calc(30% + var(--i) * 18%), transparent),
+        color-mix(in oklch, var(--accent) calc(48% + var(--i) * 18%), transparent)
+      );
+    }
+    .step.next::before {
+      height: calc(100% + 1.15rem);
+      width: 0;
+      border-top: 0;
+      border-left: 1.5px dotted color-mix(in oklch, var(--text-faint) 80%, transparent);
+      translate: -0.75px 0;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      :global(:root.js) .track .step.lit::before,
+      :global(:root.js) .track .step.next::before {
+        scale: 1 0;
+      }
+    }
+    .node {
+      grid-column: 1;
+      grid-row: 1;
+      margin-top: 0.35rem;
+    }
+    .when {
+      grid-column: 2;
+      grid-row: 1;
+      height: auto;
+      margin: 0;
+      font-size: var(--step-0);
+      line-height: 1.5;
+    }
+    .what {
+      grid-column: 3;
+      grid-row: 1;
+      margin-top: 0;
+      font-size: var(--step--1);
+    }
+    .body {
+      grid-column: 3;
+      grid-row: 2;
+    }
+    .honors li {
+      grid-template-columns: 4.2rem minmax(0, 1fr);
+      font-size: var(--step--1);
+    }
+  }
+</style>

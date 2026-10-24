@@ -1,0 +1,16 @@
+- id: "zhiyuan-scholarship"
+  visibility: "public"
+  order: 1
+  level: "university"
+  date: "2025-26"
+  title:
+    zh: "致远荣誉奖学金"
+    en: "Zhiyuan Honors Scholarship"
+- id: "cpho-38"
+  visibility: "public"
+  order: 2
+  level: "provincial"
+  date: "2021"
+  title:
+    zh: "第 38 届全国中学生物理竞赛省级赛区一等奖"
+    en: "Provincial First Prize, 38th Chinese Physics Olympiad"

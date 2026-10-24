@@ -1,0 +1,52 @@
+- id: "medicine"
+  visibility: "public"
+  order: 1
+  when: "2024"
+  title:
+    zh: "临床医学入学"
+    en: "Enrolled in clinical medicine"
+  body:
+    zh: "五年制本科"
+    en: "Five-year program"
+- id: "switch-to-ai"
+  visibility: "public"
+  order: 2
+  when: "2025"
+  title:
+    zh: "转入人工智能学院"
+    en: "Transferred to the School of AI"
+- id: "seminar-2025"
+  visibility: "public"
+  order: 3
+  when:
+    zh: "2025.07-08"
+    en: "Jul-Aug 2025"
+  title:
+    zh: "深度学习研讨班"
+    en: "Deep-learning seminar"
+  body:
+    zh: "高效 VLA 团队项目"
+    en: "Team project on efficient VLA models"
+  work:
+    - "efficient-vla"
+- id: "first-paper"
+  visibility: "public"
+  order: 4
+  when:
+    zh: "2025.12"
+    en: "Dec 2025"
+  title:
+    zh: "第一篇论文发表"
+    en: "First paper published"
+  work:
+    - "hierarchical-embodied-medical-ai"
+- id: "next"
+  visibility: "public"
+  order: 6
+  future: true
+  when:
+    zh: "之后"
+    en: "Next"
+  title:
+    zh: "未完待续"
+    en: "Ongoing"

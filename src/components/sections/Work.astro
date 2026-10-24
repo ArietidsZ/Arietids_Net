@@ -1,0 +1,295 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import SectionHeader from '~/components/ui/SectionHeader.astro';
+import Atlas from '~/components/Atlas.astro';
+import WorkCard from '~/components/WorkCard.astro';
+import Icon from '~/components/ui/Icon.astro';
+import Typeset from '~/components/ui/Typeset.astro';
+import { t, tr, type Locale } from '~/i18n';
+import { chartFor } from '~/lib/aries';
+import type { Fact } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+  work: CollectionEntry<'work'>[];
+  themes: CollectionEntry<'themes'>[];
+  /** Works already featured elsewhere on the page (shown in the atlas, not repeated as cards). */
+  featuredIds: string[];
+  /** Open-source work is not listed item by item; the GitHub profile is the channel for it. */
+  github?: Fact | undefined;
+}
+const { lang, work, themes: allThemes, featuredIds, github } = Astro.props;
+const _ = t(lang);
+const { chart, themes } = chartFor(work, allThemes, lang);
+const themeLabels = Object.fromEntries(themes.map((th) => [th.id, tr(th.data.short, lang)]));
+
+const cards = work.filter((w) => !featuredIds.includes(w.id));
+const counts = Object.fromEntries(themes.map((th) => [th.id, cards.filter((w) => w.data.themes.includes(th.id as never)).length]));
+// Built things first, then writing; each group keeps the content order.
+const groups = [
+  { id: 'build', label: _('work.groupBuild'), items: cards.filter((w) => w.data.kind !== 'writing') },
+  { id: 'writing', label: _('kind.writing'), items: cards.filter((w) => w.data.kind === 'writing') },
+].filter((g) => g.items.length > 0);
+let index = 0;
+---
+
+<section id="work" class="section container" aria-labelledby="work-title">
+  <SectionHeader lang={lang} k="section.work" id="work-title" />
+
+  <div data-reveal>
+    <Atlas lang={lang} chart={chart} counts={counts} total={cards.length} />
+  </div>
+
+  <div class="groups" data-grid>
+    {
+      groups.map((g) => (
+        <section class="group" data-group aria-label={g.label}>
+          <h3 class="group-label label" aria-hidden="true">
+            {g.label}
+            <span class="data" data-group-count>
+              {g.items.length}
+            </span>
+          </h3>
+          <div class="grid">
+            <div class="cells">
+              {g.items.map((w, k) => (
+                <WorkCard
+                  lang={lang}
+                  work={w}
+                  themeLabels={themeLabels}
+                  index={index++}
+                 
+                  class:list={{
+                    'odd-last': k === g.items.length - 1 && g.items.length % 2 === 1,
+                    'tri-last': k === g.items.length - 1 && g.items.length % 3 === 1,
+                    'duo-last': k >= g.items.length - 2 && g.items.length % 3 === 2,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      ))
+    }
+    {
+      github?.url && (
+        <a class="channel" href={github.url} target="_blank" rel="me noopener" data-visibility={github.visibility} data-reveal>
+          <span class="ch-icon" aria-hidden="true">
+            <Icon name="github" size={22} />
+          </span>
+          <span class="ch-text">
+            <span class="ch-head label" lang="en">{_('work.github')}</span>
+            <span class="ch-title">
+              <Typeset text={_('work.githubNote')} />
+            </span>
+          </span>
+          <span class="ch-url data">
+            github.com/{tr(github.text, lang)}
+            <Icon name="arrow-up-right" size={15} />
+          </span>
+        </a>
+      )
+    }
+  </div>
+  <p class="empty muted" data-empty hidden>{_('filter.empty')}</p>
+</section>
+
+<script>
+  const root = document.documentElement;
+  const holder = document.querySelector<HTMLElement>('[data-grid]');
+  const groups = [...(holder?.querySelectorAll<HTMLElement>('[data-group]') ?? [])];
+  const cards = [...(holder?.querySelectorAll<HTMLElement>('[data-card]') ?? [])];
+  const empty = document.querySelector<HTMLElement>('[data-empty]');
+
+  function apply(theme: string | null) {
+    let shown = 0;
+    for (const card of cards) {
+      const match = !theme || (card.dataset.themes ?? '').split(' ').includes(theme);
+      card.hidden = !match;
+      if (match) {
+        shown++;
+        card.classList.add('is-visible');
+      }
+    }
+    for (const g of groups) {
+      const shown = [...g.querySelectorAll<HTMLElement>('[data-card]:not([hidden])')];
+      const n = shown.length;
+      g.hidden = n === 0;
+      const count = g.querySelector('[data-group-count]');
+      if (count) count.textContent = String(n);
+      // Tag the last visible card when it would sit alone on its row (2 or 3 columns).
+      // Tag the trailing cards so every row is full: a lone last card spans the row; in three
+      // columns, a last pair splits the row in half.
+      g.querySelectorAll('[data-card]').forEach((c) => c.classList.remove('odd-last', 'tri-last', 'duo-last'));
+      shown.at(-1)?.classList.toggle('odd-last', n % 2 === 1);
+      shown.at(-1)?.classList.toggle('tri-last', n % 3 === 1);
+      if (n % 3 === 2) shown.slice(-2).forEach((c) => c.classList.add('duo-last'));
+    }
+    if (empty) empty.hidden = shown > 0;
+  }
+
+  // The atlas (stars and theme list) announces the filter; the grid follows.
+  document.addEventListener('work:filter', (e) => {
+    const theme = (e as CustomEvent<string | null>).detail;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (document.startViewTransition && !reduce) {
+      root.classList.add('filtering');
+      const vt = document.startViewTransition(() => apply(theme));
+      vt.finished.finally(() => root.classList.remove('filtering'));
+    } else apply(theme);
+  });
+
+  // Pointer spotlight on cards, and hover lights the card's star in the atlas.
+  let hovered: HTMLElement | null = null;
+  holder?.addEventListener('pointermove', (e) => {
+    const card = (e.target as HTMLElement).closest<HTMLElement>('[data-card]');
+    if (card) {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      card.style.setProperty('--my', `${e.clientY - r.top}px`);
+    }
+    if (card !== hovered && e.pointerType === 'mouse') {
+      hovered = card;
+      document.dispatchEvent(new CustomEvent('work:hover', { detail: card?.dataset.id ?? null }));
+    }
+  });
+  holder?.addEventListener('pointerleave', () => {
+    hovered = null;
+    document.dispatchEvent(new CustomEvent('work:hover', { detail: null }));
+  });
+</script>
+
+<style>
+  .groups {
+    display: grid;
+    gap: clamp(1.75rem, 3vw, 2.5rem);
+  }
+  .group {
+    display: grid;
+    gap: 0.85rem;
+  }
+  .group[hidden] {
+    display: none;
+  }
+  .group-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+  }
+  .group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--line), transparent);
+  }
+  .group-label .data {
+    order: 2;
+    color: var(--accent);
+  }
+  .grid {
+    container: cards / inline-size;
+  }
+  /* Explicit columns, so a trailing odd card can take the whole row instead of sitting alone. */
+  .cells {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+  @container cards (min-width: 44rem) {
+    .cells {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .cells > :global(.odd-last) {
+      grid-column: 1 / -1;
+    }
+  }
+  /* Three columns on a six-track grid, so a trailing pair can take half the row each. */
+  @container cards (min-width: 66rem) {
+    .cells {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .cells > :global(*),
+    .cells > :global(.odd-last) {
+      grid-column: span 2;
+    }
+    .cells > :global(.tri-last) {
+      grid-column: 1 / -1;
+    }
+    .cells > :global(.duo-last) {
+      grid-column: span 3;
+    }
+  }
+  :global(.filtering) .cells > :global([data-card]) {
+    view-transition-name: var(--vt);
+  }
+  .empty {
+    padding: 2rem 0;
+  }
+
+  /* GitHub closes the section as one full-width strip, so no row is ever left half empty. */
+  .channel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 1rem 1.35rem;
+    border-radius: var(--radius-l);
+    text-decoration: none;
+    background:
+      radial-gradient(circle at 1px 1px, color-mix(in oklch, var(--text) 9%, transparent) 1px, transparent 0) 0 0 / 14px 14px,
+      color-mix(in oklch, var(--card) 70%, transparent);
+    box-shadow: inset 0 0 0 1px var(--line);
+    transition:
+      box-shadow 0.3s,
+      transform 0.4s var(--ease-out);
+  }
+  .channel:hover {
+    color: inherit;
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, var(--line)),
+      var(--shadow);
+  }
+  .ch-icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    color: var(--text);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+  }
+  .ch-text {
+    display: grid;
+    gap: 0.1rem;
+  }
+  .ch-head {
+    color: var(--accent);
+  }
+  .ch-title {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.3;
+  }
+  .ch-url {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+    transition: color 0.2s;
+  }
+  .channel:hover .ch-url {
+    color: var(--accent);
+  }
+  @media (max-width: 40rem) {
+    .channel {
+      grid-template-columns: auto minmax(0, 1fr);
+      row-gap: 0.4rem;
+    }
+    .ch-url {
+      grid-column: 2;
+    }
+  }
+</style>

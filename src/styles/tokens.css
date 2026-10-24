@@ -1,0 +1,159 @@
+/*
+ * Design tokens.
+ * Night (default when the OS prefers dark): ink-navy sky, starlight text, meteor gold.
+ * Day: the "Daytime Arietids" — warm paper, ink navy, ochre gold, radar blue.
+ * Every component reads these variables; a new theme only needs a new block here.
+ */
+
+@layer tokens {
+  :root {
+    color-scheme: dark;
+
+    /* Night palette */
+    --bg: oklch(0.155 0.03 266);
+    --bg-deep: oklch(0.12 0.028 268);
+    --surface: oklch(0.2 0.032 266 / 0.72);
+    --surface-solid: oklch(0.205 0.032 266);
+    --surface-2: oklch(0.25 0.035 266 / 0.8);
+    --line: oklch(0.92 0.02 260 / 0.1);
+    --line-strong: oklch(0.92 0.02 260 / 0.2);
+    --text: oklch(0.95 0.012 85);
+    --text-muted: oklch(0.79 0.02 262);
+    --text-faint: oklch(0.66 0.025 262);
+    --accent: oklch(0.84 0.115 83);
+    --accent-strong: oklch(0.89 0.12 88);
+    --accent-ink: oklch(0.2 0.04 70);
+    --accent-soft: oklch(0.84 0.115 83 / 0.14);
+    --accent-2: oklch(0.8 0.08 238);
+    --accent-2-soft: oklch(0.8 0.08 238 / 0.14);
+    --glow: oklch(0.84 0.13 83 / 0.35);
+    /* Gilt fill for primary buttons and lit stars; text on it uses --accent-ink. */
+    --accent-fill: oklch(0.84 0.115 83);
+    --accent-fill-hi: oklch(0.92 0.09 90);
+    /* Small lit marks (the "now" node, meteor heads): the brightest thing in their row. */
+    --mark-core: var(--accent-fill-hi);
+    --mark-ring: color-mix(in oklch, var(--accent) 40%, transparent);
+
+    /* Surface tiers: sky (no box), plate (instruments), card (index items). */
+    --plate: oklch(0.13 0.028 266 / 0.82);
+    --plate-hi: oklch(0.2 0.035 262 / 0.6);
+    --rim-hi: oklch(0.84 0.115 83 / 0.55);
+    --rim-lo: oklch(0.92 0.02 260 / 0.08);
+    --card: oklch(0.2 0.032 266 / 0.6);
+    /* Shade along a plate's top edge, as if it sat slightly below the page. */
+    --plate-inset: oklch(0 0 0 / 0.5);
+
+    /* Persistent sky behind the whole page. */
+    --dust: oklch(0.95 0.02 85);
+    --dust-cool: oklch(0.85 0.06 250);
+    --graticule: oklch(0.8 0.05 250 / 0.07);
+
+    --ok: oklch(0.8 0.12 160);
+    --info: oklch(0.8 0.09 238);
+    --warn: oklch(0.83 0.12 75);
+    --muted-status: oklch(0.72 0.02 262);
+    --pending: oklch(0.82 0.15 65);
+    --pending-ink: oklch(0.2 0.04 60);
+
+    /* Canvas palette (read by the sky script) */
+    --sky-star: 245 240 225;
+    --sky-star-cool: 190 210 255;
+    --sky-meteor: 255 226 160;
+    --sky-radiant: 233 196 106;
+    --sky-nebula-a: 92 132 220;
+    --sky-nebula-b: 226 176 104;
+    --sky-scope: 150 175 235;
+
+    /* Type */
+    --font-display: 'Fraunces Variable', 'Noto Serif SC Variable', 'Songti SC', 'STSong', serif;
+    --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC',
+      'Source Han Sans SC', system-ui, sans-serif;
+    --font-cjk-display: 'Noto Serif SC Variable', 'Songti SC', 'STSong', serif;
+    --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'PingFang SC',
+      'Microsoft YaHei', 'Noto Sans CJK SC', monospace;
+
+    --step--2: clamp(0.72rem, 0.7rem + 0.08vw, 0.78rem);
+    --step--1: clamp(0.84rem, 0.82rem + 0.1vw, 0.9rem);
+    --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.08rem);
+    --step-1: clamp(1.15rem, 1.08rem + 0.35vw, 1.35rem);
+    --step-2: clamp(1.35rem, 1.2rem + 0.75vw, 1.85rem);
+    --step-3: clamp(1.7rem, 1.4rem + 1.5vw, 2.6rem);
+    --step-4: clamp(2.2rem, 1.6rem + 3vw, 4rem);
+    --step-5: clamp(3rem, 1.8rem + 6vw, 6.6rem);
+
+    /* Space & shape */
+    --gutter: clamp(1rem, 0.6rem + 2vw, 2.5rem);
+    --section-gap: clamp(3.5rem, 2.4rem + 4.5vw, 6.5rem);
+    --max: 76rem;
+    --max-prose: 40rem;
+    --radius-s: 0.5rem;
+    --radius: 0.9rem;
+    --radius-l: 1.4rem;
+    --radius-plate: 1.75rem;
+    --header-h: 3.75rem;
+
+    --shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 20px 50px -20px oklch(0 0 0 / 0.6);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* Han at 12px is at the edge of legibility: small steps get a floor on Chinese pages. */
+  :root:lang(zh) {
+    --step--2: clamp(0.78rem, 0.76rem + 0.08vw, 0.82rem);
+  }
+
+  :root[data-theme='day'] {
+    color-scheme: light;
+
+    --bg: oklch(0.975 0.01 85);
+    --bg-deep: oklch(0.955 0.014 85);
+    --surface: oklch(0.995 0.005 85 / 0.78);
+    --surface-solid: oklch(0.993 0.006 85);
+    --surface-2: oklch(0.95 0.014 85 / 0.9);
+    --line: oklch(0.3 0.04 266 / 0.12);
+    --line-strong: oklch(0.3 0.04 266 / 0.22);
+    --text: oklch(0.2 0.04 266);
+    --text-muted: oklch(0.4 0.03 266);
+    --text-faint: oklch(0.5 0.025 266);
+    --accent: oklch(0.5 0.12 62);
+    --accent-strong: oklch(0.44 0.12 58);
+    --accent-ink: oklch(0.2 0.04 266);
+    --accent-soft: oklch(0.7 0.13 75 / 0.16);
+    --accent-2: oklch(0.5 0.13 250);
+    --accent-2-soft: oklch(0.5 0.13 250 / 0.09);
+    --glow: oklch(0.7 0.13 80 / 0.3);
+    --accent-fill: oklch(0.78 0.13 80);
+    --accent-fill-hi: oklch(0.88 0.1 88);
+    /* On paper a pale gilt mark washes out: use a saturated ochre core with an ink ring. */
+    --mark-core: oklch(0.62 0.14 66);
+    --mark-ring: var(--accent);
+
+    --plate: oklch(0.955 0.016 85 / 0.88);
+    --plate-hi: oklch(1 0 0 / 0.7);
+    --rim-hi: oklch(0.6 0.13 70 / 0.55);
+    --rim-lo: oklch(0.3 0.04 266 / 0.1);
+    --card: oklch(0.995 0.005 85 / 0.72);
+    --plate-inset: oklch(0.6 0.09 70 / 0.1);
+
+    --dust: oklch(0.32 0.05 266);
+    --dust-cool: oklch(0.45 0.1 250);
+    --graticule: oklch(0.42 0.08 252 / 0.08);
+
+    --ok: oklch(0.45 0.11 160);
+    --info: oklch(0.48 0.11 250);
+    --warn: oklch(0.52 0.12 65);
+    --muted-status: oklch(0.48 0.02 266);
+    --pending: oklch(0.5 0.14 50);
+    --pending-ink: oklch(0.99 0.01 85);
+
+    --sky-star: 40 50 90;
+    --sky-star-cool: 60 90 170;
+    --sky-meteor: 170 110 30;
+    --sky-radiant: 190 130 40;
+    --sky-nebula-a: 120 140 200;
+    --sky-nebula-b: 210 170 110;
+    --sky-scope: 45 75 150;
+
+    --shadow: 0 1px 0 oklch(1 0 0 / 0.6) inset, 0 18px 40px -24px oklch(0.3 0.05 266 / 0.35);
+  }
+}

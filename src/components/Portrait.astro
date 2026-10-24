@@ -1,0 +1,416 @@
+---
+/**
+ * Portrait inside an astrolabe. Click to flip to the second avatar, when both are approved.
+ * With no approved avatar it falls back to the radiant mark, so the hero never looks broken.
+ */
+import { Picture } from 'astro:assets';
+import Logo from '~/components/ui/Logo.astro';
+import { site } from '~/config/site';
+import { t, tr, type Locale } from '~/i18n';
+import { loadAvatar } from '~/lib/avatars';
+import { getFacts } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const _ = t(lang);
+const facts = await getFacts();
+const frontFact = facts.get(site.portrait.front);
+const backFact = facts.get(site.portrait.back);
+const front = frontFact ? await loadAvatar(frontFact.id) : undefined;
+const back = backFact && front ? await loadAvatar(backFact.id) : undefined;
+const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
+const ringText = 'ARIETIDS · DAYTIME METEOR SHOWER · RADIANT IN ARIES · ';
+const Tag = back ? 'button' : 'div';
+---
+
+<div class="portrait" data-astrolabe data-visibility={frontFact?.visibility}>
+  <div class="instrument" data-instrument>
+    <svg class="rings" viewBox="0 0 400 400" aria-hidden="true">
+      <defs>
+        <path id="ring-path" d="M200,200 m-168,0 a168,168 0 1,1 336,0 a168,168 0 1,1 -336,0"></path>
+        <linearGradient id="gilt" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" class="g-hi"></stop>
+          <stop offset="0.45" class="g-mid"></stop>
+          <stop offset="1" class="g-lo"></stop>
+        </linearGradient>
+        <clipPath id="annulus">
+          <path
+            clip-rule="evenodd"
+            d="M200,200 m-197,0 a197,197 0 1,0 394,0 a197,197 0 1,0 -394,0 Z M200,200 m-146,0 a146,146 0 1,1 292,0 a146,146 0 1,1 -292,0 Z"
+          ></path>
+        </clipPath>
+      </defs>
+      <g class="spin">
+        <g class="ring outer" data-loop>
+          <circle cx="200" cy="200" r="197" class="bezel"></circle>
+          <circle cx="200" cy="200" r="194" class="hairline"></circle>
+          {
+            ticks.map((deg) => (
+              <line
+                x1="200"
+                y1={deg % 30 === 0 ? 6 : 10}
+                x2="200"
+                y2="15"
+                transform={`rotate(${deg} 200 200)`}
+                class={deg % 30 === 0 ? 'tick major' : 'tick'}
+              />
+            ))
+          }
+        </g>
+        <g class="ring text" data-loop>
+          <text><textPath href="#ring-path" textLength="1050">{ringText}{ringText}</textPath></text>
+        </g>
+        <g class="ring inner" data-loop>
+          <circle cx="200" cy="200" r="152" class="dashed"></circle>
+          <!-- The rete: an eccentric ecliptic ring, as on a real astrolabe. -->
+          <circle cx="200" cy="176" r="172" class="rete" clip-path="url(#annulus)"></circle>
+          <path class="sparkle" d="M200 40 202.5 45.5 208 48 202.5 50.5 200 56 197.5 50.5 192 48 197.5 45.5Z" transform="rotate(38 200 200)"></path>
+          <circle cx="200" cy="48" r="2.2" class="dot" transform="rotate(160 200 200)"></circle>
+          <circle cx="200" cy="48" r="1.6" class="dot" transform="rotate(250 200 200)"></circle>
+        </g>
+      </g>
+    </svg>
+    <span class="rimlight" aria-hidden="true"></span>
+
+    <Tag
+      class="disc"
+      type={back ? 'button' : undefined}
+      aria-label={back ? _('hero.portraitFlip') : undefined}
+      aria-describedby={back ? 'portrait-face' : undefined}
+      aria-pressed={back ? 'false' : undefined}
+      data-flip={back ? '' : undefined}
+    >
+      <span class="card">
+        {back && [-2, -1, 0, 1, 2].map((z) => <span class="edge" style={`--z:${z}px`} aria-hidden="true" />)}
+        <span class="face front">
+          {
+            front ? (
+              <Picture
+                src={front}
+                alt={tr(frontFact!.text, lang)}
+                widths={[280, 420, 560, 840]}
+                sizes="(max-width: 48rem) 60vw, 360px"
+                formats={['avif', 'webp']}
+                fallbackFormat="jpg"
+                quality={82}
+                loading="eager"
+                fetchpriority="high"
+              />
+            ) : (
+              <span class="fallback">
+                <Logo size={120} />
+              </span>
+            )
+          }
+        </span>
+        {
+          back && (
+            <span class="face back" data-visibility={backFact!.visibility}>
+              <Picture
+                src={back}
+                alt={tr(backFact!.text, lang)}
+                widths={[280, 420, 560]}
+                sizes="(max-width: 48rem) 60vw, 360px"
+                formats={['avif', 'webp']}
+                fallbackFormat="jpg"
+                quality={82}
+                loading="lazy"
+              />
+            </span>
+          )
+        }
+      </span>
+    </Tag>
+    {
+      back && (
+        <span class="sr-only" id="portrait-face" data-face-front={tr(frontFact!.text, lang)} data-face-back={tr(backFact!.text, lang)}>
+          {tr(frontFact!.text, lang)}
+        </span>
+      )
+    }
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-astrolabe]').forEach((root) => {
+    const instrument = root.querySelector<HTMLElement>('[data-instrument]')!;
+    const btn = root.querySelector<HTMLButtonElement>('[data-flip]');
+    let turns = 0;
+
+    // Flipping turns the plate over and advances the rings a notch, like setting an instrument.
+    btn?.addEventListener('click', () => {
+      const flipped = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(flipped));
+      // The button's description names the illustration now facing the visitor.
+      const face = root.querySelector<HTMLElement>('#portrait-face');
+      if (face) face.textContent = (flipped ? face.dataset.faceBack : face.dataset.faceFront) ?? '';
+      instrument.style.setProperty('--turns', String(++turns));
+    });
+
+    // The instrument leans toward a fine pointer, and a highlight runs round the rim to face it.
+    const fine = matchMedia('(hover: hover) and (pointer: fine)');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    let raf = 0;
+    let target = { x: 0, y: 0 };
+    addEventListener(
+      'pointermove',
+      (e) => {
+        if (!fine.matches || reduce.matches || e.pointerType !== 'mouse') return;
+        const r = root.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        target = {
+          x: Math.max(-1, Math.min(1, (e.clientX - cx) / (innerWidth * 0.5))),
+          y: Math.max(-1, Math.min(1, (e.clientY - cy) / (innerHeight * 0.5))),
+        };
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          instrument.style.setProperty('--ry', `${(target.x * 7).toFixed(2)}deg`);
+          instrument.style.setProperty('--rx', `${(-target.y * 7).toFixed(2)}deg`);
+          const deg = (Math.atan2(target.y, target.x) * 180) / Math.PI + 90;
+          instrument.style.setProperty('--spec', `${deg.toFixed(1)}deg`);
+        });
+      },
+      { passive: true },
+    );
+    document.documentElement.addEventListener('pointerleave', () => {
+      instrument.style.setProperty('--ry', '0deg');
+      instrument.style.setProperty('--rx', '0deg');
+    });
+  });
+</script>
+
+<style>
+  .portrait {
+    position: relative;
+    width: min(100%, var(--size, 26rem));
+    aspect-ratio: 1;
+  }
+  .instrument {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    transform-style: preserve-3d;
+    transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.8s var(--ease-out);
+  }
+  .rings {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    transform: translateZ(-18px);
+  }
+  .spin {
+    transform-origin: 200px 200px;
+    transform-box: view-box;
+    transform: rotate(calc(var(--turns, 0) * 30deg));
+    transition: transform 1.6s var(--ease-out);
+  }
+  .ring {
+    transform-origin: 200px 200px;
+    transform-box: view-box;
+  }
+  .outer {
+    animation: spin 160s linear infinite;
+  }
+  .text {
+    animation: spin 90s linear infinite reverse;
+  }
+  .inner {
+    animation: spin 60s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ring {
+      animation: none;
+    }
+    .instrument,
+    .spin {
+      transition: none;
+    }
+  }
+  .g-hi {
+    stop-color: var(--accent-fill-hi);
+    stop-opacity: 0.9;
+  }
+  .g-mid {
+    stop-color: var(--accent);
+    stop-opacity: 0.35;
+  }
+  .g-lo {
+    stop-color: var(--accent);
+    stop-opacity: 0.7;
+  }
+  .bezel {
+    fill: none;
+    stroke: url(#gilt);
+    stroke-width: 1.2;
+  }
+  .hairline {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 1;
+  }
+  .tick {
+    stroke: var(--text-faint);
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+  .tick.major {
+    stroke: var(--accent);
+    stroke-width: 1.4;
+    opacity: 0.9;
+  }
+  .text text {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    fill: var(--text-faint);
+  }
+  .dashed {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 45%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 1 7;
+    stroke-linecap: round;
+  }
+  .rete {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) 38%, transparent);
+    stroke-width: 0.8;
+    stroke-dasharray: 6 3 1 3;
+  }
+  .sparkle,
+  .dot {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 4px var(--glow));
+  }
+
+  /* A specular glint on the gilt rim, turned toward the pointer. */
+  .rimlight {
+    position: absolute;
+    inset: 0.5%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: conic-gradient(
+      from calc(var(--spec, -40deg) - 28deg),
+      transparent,
+      color-mix(in oklch, var(--accent-fill-hi) 85%, transparent) 28deg,
+      transparent 56deg,
+      transparent
+    );
+    mask: radial-gradient(closest-side, transparent calc(100% - 2.5px), #000 calc(100% - 1.5px), transparent);
+    opacity: 0.85;
+    transform: translateZ(-18px);
+    transition: opacity 0.6s;
+  }
+  :global(:root[data-theme='day']) .rimlight {
+    opacity: 0.6;
+  }
+
+  .disc {
+    position: relative;
+    width: 70%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    perspective: 1200px;
+    display: block;
+    transform: translateZ(26px);
+  }
+  button.disc {
+    cursor: pointer;
+  }
+  button.disc:focus-visible {
+    outline-offset: 8px;
+    border-radius: 50%;
+  }
+  .card {
+    position: absolute;
+    inset: 0;
+    display: block;
+    /* Round, so the hit area is the plate and not its bounding square over the rings. */
+    border-radius: 50%;
+    transform-style: preserve-3d;
+    transition: transform 0.95s var(--ease-in-out);
+  }
+  .disc[aria-pressed='true'] .card {
+    transform: rotateY(180deg);
+  }
+  /* Hover lean for mice only: on touch, :hover sticks after a tap and would leave the plate askew. */
+  @media (hover: hover) and (pointer: fine) {
+    button.disc:hover .card {
+      transform: rotateY(14deg) rotateX(-4deg);
+    }
+    button.disc[aria-pressed='true']:hover .card {
+      transform: rotateY(166deg) rotateX(-4deg);
+    }
+  }
+  /* Stacked gilt discs give the plate a visible edge while it turns. */
+  .edge {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: translateZ(var(--z));
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--accent) 40%, black),
+      var(--accent-fill-hi) 50%,
+      color-mix(in oklch, var(--accent) 40%, black)
+    );
+  }
+  .face {
+    position: absolute;
+    inset: 0;
+    display: block;
+    border-radius: 50%;
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(3px);
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--accent) 60%, transparent),
+      0 0 0 7px color-mix(in oklch, var(--bg) 70%, transparent),
+      0 0 0 8px var(--line-strong),
+      0 30px 80px -20px var(--glow);
+    background: var(--surface-solid);
+  }
+  /* Bevel: light from the upper left, a little depth at the lower edge. */
+  .face::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 0 1px oklch(1 0 0 / 0.1),
+      inset 0 12px 22px -14px oklch(0.97 0.05 90 / 0.45),
+      inset 0 -18px 32px -12px oklch(0 0 0 / 0.55);
+    background: radial-gradient(70% 55% at 28% 18%, oklch(1 0 0 / 0.1), transparent 60%);
+  }
+  .back {
+    transform: rotateY(180deg) translateZ(3px);
+    background: #fff;
+  }
+  .face :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .fallback {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 70% 25%, var(--accent-soft), transparent 60%), var(--surface-solid);
+  }
+</style>

@@ -1,0 +1,34 @@
+---
+/**
+ * Inline typesetting for a title: compounds stay whole, the CJK double dash is drawn as one rule,
+ * Han phrases get break hints (zero-width spaces, which screen readers skip, unlike <wbr>), and with
+ * `split` a '——' or ': ' subtitle drops to a quieter second line.
+ */
+import { segments, splitTitle } from '~/lib/typeset';
+
+interface Props {
+  text: string;
+  split?: boolean;
+}
+const { text, split = false } = Astro.props;
+const parts = split ? splitTitle(text) : { main: text };
+const main = segments(parts.main);
+const sub = parts.sub ? segments(parts.sub) : [];
+---
+
+<span class="ts-main">{
+  main.map((s) =>
+    s.kind === 'wbr' ? '\u200b' : s.kind === 'text' ? s.text : s.kind === 'nobr' ? <span class="nobr">{s.text}</span> : <span class="cjk-dash">{s.text}</span>,
+  )
+}</span>{
+  parts.sub && (
+    <>
+      {!parts.sub.startsWith('——') && ' '}
+      <span class="ts-sub">{
+        sub.map((s) =>
+          s.kind === 'wbr' ? '\u200b' : s.kind === 'text' ? s.text : s.kind === 'nobr' ? <span class="nobr">{s.text}</span> : <span class="cjk-dash">{s.text}</span>,
+        )
+      }</span>
+    </>
+  )
+}

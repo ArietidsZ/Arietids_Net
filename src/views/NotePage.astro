@@ -1,0 +1,142 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+import Base from '~/layouts/Base.astro';
+import Icon from '~/components/ui/Icon.astro';
+import { formatDate, localePath, t, type Locale } from '~/i18n';
+import { noteSlug } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+  note: CollectionEntry<'notes'>;
+  /** Locales in which this note exists, for hreflang and the language switch. */
+  alternates: Locale[];
+}
+const { lang, note, alternates } = Astro.props;
+const _ = t(lang);
+const { Content } = await render(note);
+const other = alternates.find((l) => l !== lang);
+---
+
+<Base lang={lang} title={note.data.title} description={note.data.description} type="article" alternates={alternates}>
+  <article class="note container" data-visibility={note.data.visibility}>
+    <a class="back mono" href={localePath(lang, '/notes/')}><Icon name="arrow-left" size={14} /> {_('notes.back')}</a>
+    <header>
+      <p class="mono date">
+        <time datetime={note.data.date.toISOString()}>{formatDate(note.data.date, lang)}</time>
+        {
+          note.data.updated && (
+            <span class="faint">
+              · {_('notes.updated')} {formatDate(note.data.updated, lang)}
+            </span>
+          )
+        }
+      </p>
+      <h1>{note.data.title}</h1>
+      <p class="lede">{note.data.description}</p>
+      {
+        other && (
+          <p class="other mono">
+            <a href={localePath(other, `/notes/${noteSlug(note)}/`)} hreflang={other}>
+              {_('notes.otherLang')}
+            </a>
+          </p>
+        )
+      }
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</Base>
+
+<style>
+  .note {
+    max-width: 46rem;
+    padding-block: clamp(2rem, 6vw, 4rem);
+  }
+  .back {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    color: var(--text-muted);
+    text-decoration: none;
+    text-transform: none;
+  }
+  header {
+    margin-block: 2.5rem 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .date {
+    color: var(--accent);
+    text-transform: none;
+  }
+  h1 {
+    font-size: var(--step-4);
+    margin-top: 0.75rem;
+  }
+  .lede {
+    margin-top: 1rem;
+    font-size: var(--step-1);
+    color: var(--text-muted);
+  }
+  .other {
+    margin-top: 1rem;
+    text-transform: none;
+  }
+  .other a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .prose {
+    font-size: var(--step-0);
+  }
+  .prose :global(:is(p, ul, ol, blockquote, pre, figure)) {
+    margin-block: 0 1.25em;
+  }
+  .prose :global(h2) {
+    font-size: var(--step-2);
+    margin-block: 2.2em 0.8em;
+  }
+  .prose :global(h3) {
+    font-size: var(--step-1);
+    margin-block: 1.8em 0.6em;
+  }
+  .prose :global(:is(ul, ol)) {
+    padding-left: 1.3em;
+  }
+  .prose :global(li) {
+    margin-block: 0.35em;
+  }
+  .prose :global(li::marker) {
+    color: var(--accent);
+  }
+  .prose :global(strong) {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .prose :global(blockquote) {
+    padding-left: 1.2em;
+    border-left: 2px solid var(--accent);
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+  }
+  .prose :global(pre) {
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--bg-deep);
+    overflow-x: auto;
+    font-size: var(--step--1);
+  }
+  .prose :global(:not(pre) > code) {
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: var(--surface-2);
+  }
+  .prose :global(img) {
+    border-radius: var(--radius);
+  }
+</style>

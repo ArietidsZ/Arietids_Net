@@ -1,0 +1,38 @@
+---
+import Base from '~/layouts/Base.astro';
+import Notes from '~/components/sections/Notes.astro';
+import { t, type Locale } from '~/i18n';
+import ComingSoon from '~/views/ComingSoon.astro';
+import { getNotes, isSiteReady } from '~/lib/content';
+
+interface Props {
+  lang: Locale;
+}
+const { lang } = Astro.props;
+const _ = t(lang);
+const notes = await getNotes(lang);
+const ready = await isSiteReady();
+---
+
+{
+  !ready && (
+    <Base lang={lang} bare noindex>
+      <ComingSoon lang={lang} />
+    </Base>
+  )
+}
+{ready && (
+<Base lang={lang} title={_('notes.title')} description={_('notes.lede')}>
+  <div class="page">
+    <Notes lang={lang} notes={notes} all />
+    {notes.length === 0 && <p class="container muted">{_('notes.empty')}</p>}
+  </div>
+</Base>
+)}
+
+<style>
+  .page {
+    padding-top: clamp(2rem, 6vw, 4rem);
+    min-height: 60vh;
+  }
+</style>

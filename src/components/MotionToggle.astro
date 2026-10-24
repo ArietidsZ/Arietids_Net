@@ -1,0 +1,91 @@
+---
+/**
+ * Pause every looping animation (sky canvases, ring spins, twinkles) and keep it paused across
+ * pages. A visible switch for WCAG 2.2.2, in addition to honouring prefers-reduced-motion.
+ */
+import Icon from '~/components/ui/Icon.astro';
+import { t, type Locale } from '~/i18n';
+
+interface Props {
+  lang: Locale;
+}
+const _ = t(Astro.props.lang);
+---
+
+<button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" aria-label={_('motion.pause')} title={_('motion.pause')}>
+  <span class="face pause"><Icon name="pause" size={16} /></span>
+  <span class="face play"><Icon name="play" size={17} /></span>
+</button>
+
+<script>
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-motion-toggle]');
+  const sync = () => buttons.forEach((b) => b.setAttribute('aria-pressed', String(root.dataset.motion === 'off')));
+  sync();
+  buttons.forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const off = root.dataset.motion !== 'off';
+      if (off) root.dataset.motion = 'off';
+      else delete root.dataset.motion;
+      try {
+        off ? localStorage.setItem('motion', 'off') : localStorage.removeItem('motion');
+      } catch {}
+      sync();
+      window.dispatchEvent(new CustomEvent('motionchange'));
+    }),
+  );
+
+  // A page restored from the back/forward cache, or open in another tab, takes the saved choice.
+  function reconcile() {
+    let off = false;
+    try {
+      off = localStorage.getItem('motion') === 'off';
+    } catch {}
+    if (off === (root.dataset.motion === 'off')) return;
+    if (off) root.dataset.motion = 'off';
+    else delete root.dataset.motion;
+    sync();
+    window.dispatchEvent(new CustomEvent('motionchange'));
+  }
+  window.addEventListener('pageshow', (e) => e.persisted && reconcile());
+  window.addEventListener('storage', (e) => e.key === 'motion' && reconcile());
+</script>
+
+<style>
+  .motion-toggle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 999px;
+    color: var(--text-muted);
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  @media (hover: hover) {
+    .motion-toggle:hover {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+  }
+  .face {
+    grid-area: 1 / 1;
+    display: grid;
+    place-items: center;
+    transition:
+      opacity 0.25s,
+      transform 0.35s var(--ease-out);
+  }
+  .play,
+  [aria-pressed='true'] .pause {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  [aria-pressed='true'] .play {
+    opacity: 1;
+    transform: none;
+    color: var(--accent);
+  }
+</style>

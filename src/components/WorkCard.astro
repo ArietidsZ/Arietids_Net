@@ -1,0 +1,262 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import StatusBadge from '~/components/ui/StatusBadge.astro';
+import Icon from '~/components/ui/Icon.astro';
+import Typeset from '~/components/ui/Typeset.astro';
+import { localePath, t, tr, type Locale } from '~/i18n';
+import type { UiKey } from '~/i18n/ui';
+import { ranges, script } from '~/lib/typeset';
+
+interface Props {
+  lang: Locale;
+  work: CollectionEntry<'work'>;
+  themeLabels: Record<string, string>;
+  index?: number;
+  class?: string;
+}
+const { lang, work, themeLabels, index = 0, class: extra } = Astro.props;
+const _ = t(lang);
+const d = work.data;
+const href = localePath(lang, `/work/${work.id}/`);
+const when = d.period ? ranges(tr(d.period, lang)) : d.year;
+const title = tr(d.title, lang);
+---
+
+<article
+  class:list={['card', d.kind === 'writing' ? 'writing' : 'build', extra]}
+  data-card
+  data-id={work.id}
+  data-themes={d.themes.join(' ')}
+  data-visibility={d.visibility}
+  style={`--vt:w-${work.id};--reveal-i:${index % 3}`}
+  data-reveal
+>
+  <div class="head">
+    <span class="kind label">
+      {_(`kind.${d.kind}` as UiKey)}
+      {when && <span class="when data">{when}</span>}
+    </span>
+    <StatusBadge lang={lang} status={d.status} label={d.statusNote && tr(d.statusNote, lang).split(' · ')[0]} />
+  </div>
+
+  <h3 data-script={script(title)} data-vt-title={work.id} lang={lang === 'zh' && script(title) === 'latin' ? 'en' : undefined}>
+    <a href={href} class="stretch"><Typeset text={title} split /></a>
+  </h3>
+  <p class="summary"><Typeset text={tr(d.summary, lang)} /></p>
+
+  {d.stack.length > 0 && <p class="stack data">{d.stack.join(' · ')}</p>}
+
+  <div class="foot">
+    <ul class="themes" role="list" aria-label={_('work.themes')}>
+      {
+        d.themes.map((th, i) => (
+          <li class:list={{ primary: i === 0 }} data-theme-dot={th}>
+            {themeLabels[th]}
+          </li>
+        ))
+      }
+    </ul>
+    <span class="go" aria-hidden="true"><Icon name="arrow-right" size={18} /></span>
+  </div>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto auto;
+    gap: 0.5rem;
+    padding: 1.1rem 1.25rem 1rem;
+    border-radius: var(--radius-l);
+    background: var(--card);
+    box-shadow: inset 0 0 0 1px var(--line);
+    backdrop-filter: blur(8px);
+    isolation: isolate;
+    transition:
+      box-shadow 0.3s,
+      transform 0.45s var(--ease-out);
+  }
+  /* Spotlight that follows the pointer (see Work.astro). */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.35s;
+    background: radial-gradient(
+      26rem circle at var(--mx, 50%) var(--my, 0%),
+      color-mix(in oklch, var(--accent) 11%, transparent),
+      transparent 45%
+    );
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklch, var(--accent) 40%, var(--line)),
+      var(--shadow);
+  }
+  .card:hover::before {
+    opacity: 1;
+  }
+  .card:has(.stretch:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .stretch:focus-visible {
+    outline: none;
+  }
+  .card[hidden] {
+    display: none;
+  }
+
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.2rem;
+  }
+  .kind {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-right: auto;
+    color: var(--accent);
+  }
+  .when {
+    white-space: nowrap;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+
+  h3 {
+    font-size: var(--step-1);
+    line-height: 1.28;
+    font-variation-settings: 'opsz' 36;
+    text-wrap: balance;
+  }
+  h3 :global(.ts-sub) {
+    font-size: 0.78em;
+  }
+  .stretch {
+    text-decoration: none;
+  }
+  .stretch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  .card:hover .stretch {
+    color: var(--accent);
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: var(--step--1);
+    line-height: 1.65;
+    text-wrap: balance;
+  }
+  /* Chinese summaries break only at punctuation, spaces and phrase hints, never inside a word. */
+  .summary:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .stack {
+    color: var(--text-faint);
+    line-height: 1.5;
+  }
+  .foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.25rem;
+    padding-top: 0.7rem;
+    border-top: 1px dashed var(--line);
+  }
+  .themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+    font-size: var(--step--2);
+    color: var(--text-faint);
+  }
+  .themes li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .themes li::before {
+    content: '';
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.2px var(--accent-2);
+  }
+  .themes li.primary::before {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--glow);
+  }
+  @media (forced-colors: active) {
+    .themes li::before {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+  }
+  .go {
+    color: var(--text-faint);
+    transition:
+      transform 0.3s var(--ease-out),
+      color 0.3s;
+  }
+  .card:hover .go {
+    color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  /* In a narrow list (phones, the related list on detail pages): rows instead of boxes. */
+  @container cards (max-width: 44rem) {
+    .card {
+      grid-template-rows: none;
+      gap: 0.35rem;
+      padding: 1rem 0.25rem 1.05rem;
+      border-radius: 0;
+      background: none;
+      backdrop-filter: none;
+      box-shadow: none;
+      border-bottom: 1px solid var(--line);
+    }
+    .card:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    .card::before {
+      display: none;
+    }
+    .summary {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-wrap: pretty;
+    }
+    /* Chinese breaks only between words, so it gets a third line rather than a cut sentence. */
+    .summary:lang(zh) {
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+    }
+    .stack {
+      display: none;
+    }
+    .foot {
+      margin-top: 0;
+      padding-top: 0.15rem;
+      border-top: 0;
+    }
+  }
+</style>

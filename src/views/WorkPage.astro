@@ -1,0 +1,749 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Base from '~/layouts/Base.astro';
+import StatusBadge from '~/components/ui/StatusBadge.astro';
+import Icon from '~/components/ui/Icon.astro';
+import Typeset from '~/components/ui/Typeset.astro';
+import WorkCard from '~/components/WorkCard.astro';
+import StarPlate from '~/components/StarPlate.astro';
+import { localePath, t, tr, type Locale } from '~/i18n';
+import type { UiKey } from '~/i18n/ui';
+import { getThemes, getWork } from '~/lib/content';
+import { bibtex } from '~/lib/cite';
+import { chartFor } from '~/lib/aries';
+import { ranges, script } from '~/lib/typeset';
+
+interface Props {
+  lang: Locale;
+  work: CollectionEntry<'work'>;
+}
+const { lang, work } = Astro.props;
+const _ = t(lang);
+const d = work.data;
+const [all, allThemes] = await Promise.all([getWork(), getThemes()]);
+const { chart, themes } = chartFor(all, allThemes, lang);
+const themeLabels = Object.fromEntries(themes.map((th) => [th.id, tr(th.data.short, lang)]));
+const themeFull = Object.fromEntries(allThemes.map((th) => [th.id, tr(th.data.label, lang)]));
+
+const i = all.findIndex((w) => w.id === work.id);
+const prev = all[i - 1];
+const next = all[i + 1];
+const related = all.filter((w) => w.id !== work.id && w.data.themes.some((th) => d.themes.includes(th))).slice(0, 3);
+const bib = bibtex(work);
+const c = d.citation;
+const when = d.period ? ranges(tr(d.period, lang)) : d.year;
+const title = tr(d.title, lang);
+// Long titles step down one size so they hold two or three good lines.
+const long = [...title].length > (script(title) === 'han' ? 14 : 30);
+const home = localePath(lang, '/');
+---
+
+<Base lang={lang} title={title} description={tr(d.summary, lang)} type="article">
+  <article class="work" data-visibility={d.visibility}>
+    <header class="head">
+      <canvas class="sky" data-sky aria-hidden="true"></canvas>
+      <div class="container head-grid">
+        <div class="intro">
+          <a class="back label" href={`${home}#work`} data-shield>
+            <Icon name="arrow-left" size={14} />
+            {_('work.back')}
+          </a>
+          <p class="kicker" data-shield>
+            <span class="label">{_(`kind.${d.kind}` as UiKey)}</span>
+            {when && <span class="data">{when}</span>}
+          </p>
+          <h1
+            class:list={{ long }}
+            data-script={script(title)}
+            data-vt-title={work.id}
+            lang={lang === 'zh' && script(title) === 'latin' ? 'en' : undefined}
+            style={`view-transition-name:t-${work.id}`}
+            data-shield
+          >
+            <Typeset text={title} split />
+          </h1>
+          {
+            d.subtitle && (
+              <p class="subtitle" lang={script(tr(d.subtitle, lang)) === 'latin' ? 'en' : undefined} data-shield>
+                {tr(d.subtitle, lang)}
+              </p>
+            )
+          }
+          <p class="lead" data-shield>
+            <Typeset text={tr(d.summary, lang)} />
+          </p>
+          <div class="badges" data-shield>
+            <StatusBadge lang={lang} status={d.status} label={d.statusNote && tr(d.statusNote, lang)} />
+          </div>
+        </div>
+
+        <aside class="card rim">
+          <div class="plate-wrap" data-anchor>
+            <span class="plate-label label">{_('work.onAtlas')}</span>
+            <StarPlate chart={chart} workId={work.id} />
+          </div>
+          <dl class="facts">
+            {
+              d.role && (
+                <div>
+                  <dt class="label">{_('work.role')}</dt>
+                  <dd>{tr(d.role, lang)}</dd>
+                </div>
+              )
+            }
+            <div>
+              <dt class="label">{_('work.themes')}</dt>
+              <dd class="themes">
+                {d.themes.map((th, k) => (
+                  <span class:list={{ primary: k === 0 }}>{themeFull[th]}</span>
+                ))}
+              </dd>
+            </div>
+            {
+              d.stack.length > 0 && (
+                <div>
+                  <dt class="label">{_('work.stack')}</dt>
+                  <dd class="stack data">{d.stack.join(' · ')}</dd>
+                </div>
+              )
+            }
+          </dl>
+          {
+            d.links.length > 0 && (
+              <div class="links">
+                {d.links.map((l) => (
+                  <a class="btn btn-ghost btn-sm" href={l.url} target="_blank" rel="noopener">
+                    <Icon name={l.kind === 'repo' ? 'github' : l.kind === 'doi' ? 'link' : 'doc'} size={15} />
+                    <span>{tr(l.label, lang)}</span>
+                    <Icon name="arrow-up-right" size={13} />
+                  </a>
+                ))}
+              </div>
+            )
+          }
+        </aside>
+      </div>
+    </header>
+
+    <div class="container body">
+      {
+        d.description && (
+          <p class="description">
+            <Typeset text={tr(d.description, lang)} />
+          </p>
+        )
+      }
+
+      {
+        c && (
+          <section class="cite-block">
+            <h2 class="label">{_('work.cite')}</h2>
+            <p class="cite" lang="en">
+              {c.authors.join(', ')}. {tr(d.title, 'en')}. <em>{c.venue}</em> {c.volume}, {c.article} ({c.year}).
+              {c.conference && ` ${c.conference}.`}
+            </p>
+            <p class="cite-meta data">
+              {c.doi && (
+                <a href={`https://doi.org/${c.doi}`} target="_blank" rel="noopener">
+                  doi:{c.doi}
+                </a>
+              )}
+              {c.published && (
+                <span>
+                  {_('work.published')} {c.published}
+                </span>
+              )}
+              {c.pages && <span>{_('work.pages', { n: c.pages })}</span>}
+              {c.license && <span>{c.license}</span>}
+            </p>
+            {bib && (
+              <details class="bib">
+                <summary>
+                  <span class="label" lang="en">BibTeX</span>
+                  <span class="toggle data">{_('work.showBibtex')}</span>
+                </summary>
+                <div class="bib-body">
+                  <pre><code>{bib}</code></pre>
+                  <button type="button" class="btn btn-ghost btn-sm copy" data-copy={bib} data-copied-label={_('pub.copied')}>
+                    <Icon name="copy" size={14} />
+                    <span data-copy-label>{_('pub.copyBibtex')}</span>
+                  </button>
+                </div>
+              </details>
+            )}
+          </section>
+        )
+      }
+
+      {
+        d.highlights.length > 0 && (
+          <section>
+            <h2 class="label">{_('work.highlights')}</h2>
+            <ul class="highlights" role="list">
+              {d.highlights.map((h) => (
+                <li>
+                  <Icon name="star" size={14} />
+                  {tr(h, lang)}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      {
+        d.metrics.length > 0 && (
+          <section>
+            <h2 class="label">{_('work.metrics')}</h2>
+            <dl class="metrics">
+              {d.metrics.map((m) => (
+                <div>
+                  <dt>{tr(m.label, lang)}</dt>
+                  <dd class="value">{m.value}</dd>
+                  {m.note && <dd class="mnote">{tr(m.note, lang)}</dd>}
+                </div>
+              ))}
+            </dl>
+          </section>
+        )
+      }
+
+      {
+        d.caveats.length > 0 && (
+          <section class="caveats">
+            <h2 class="label">{_('work.caveats')}</h2>
+            <ul role="list">
+              {d.caveats.map((cv) => (
+                <li>{tr(cv, lang)}</li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </div>
+
+    {
+      related.length > 0 && (
+        <section class="container related">
+          <h2 class="label">{_('work.related')}</h2>
+          <div class="rel-grid">
+            {related.map((w, k) => (
+              <WorkCard lang={lang} work={w} themeLabels={themeLabels} index={k} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <nav class="container pager" aria-label={`${_('work.prev')} / ${_('work.next')}`}>
+      {
+        prev ? (
+          <a href={localePath(lang, `/work/${prev.id}/`)} rel="prev" class="cell">
+            <span class="label">
+              <Icon name="arrow-left" size={13} /> {_('work.prev')}
+            </span>
+            <span
+              class="t"
+              data-script={script(tr(prev.data.title, lang))}
+              lang={lang === 'zh' && script(tr(prev.data.title, lang)) === 'latin' ? 'en' : undefined}
+            >
+              <Typeset text={tr(prev.data.title, lang)} split />
+            </span>
+          </a>
+        ) : (
+          <a href={`${home}#work`} class="cell">
+            <span class="label">
+              <Icon name="arrow-left" size={13} /> {_('nav.home')}
+            </span>
+            <span class="t">{_('work.back')}</span>
+          </a>
+        )
+      }
+      {
+        next ? (
+          <a href={localePath(lang, `/work/${next.id}/`)} rel="next" class="cell next">
+            <span class="label">
+              {_('work.next')} <Icon name="arrow-right" size={13} />
+            </span>
+            <span
+              class="t"
+              data-script={script(tr(next.data.title, lang))}
+              lang={lang === 'zh' && script(tr(next.data.title, lang)) === 'latin' ? 'en' : undefined}
+            >
+              <Typeset text={tr(next.data.title, lang)} split />
+            </span>
+          </a>
+        ) : (
+          <a href={`${home}#work`} class="cell next">
+            <span class="label">
+              {_('nav.home')} <Icon name="arrow-right" size={13} />
+            </span>
+            <span class="t">{_('work.back')}</span>
+          </a>
+        )
+      }
+    </nav>
+  </article>
+</Base>
+
+<script>
+  import '~/scripts/copy';
+  import { mountSky } from '~/scripts/sky';
+
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-sky]');
+  if (canvas) {
+    const head = canvas.closest('.head');
+    mountSky(canvas, {
+      radiant: { x: 0.8, y: 0.25 },
+      anchor: head?.querySelector<HTMLElement>('[data-anchor]'),
+      shield: [...(head?.querySelectorAll<HTMLElement>('[data-shield]') ?? [])],
+      rate: 2400,
+      nebula: false,
+    });
+  }
+</script>
+
+<style>
+  /* ---------- header ---------- */
+  .head {
+    position: relative;
+    isolation: isolate;
+    overflow: clip;
+    margin-top: calc(-1 * var(--header-h));
+    padding-top: calc(var(--header-h) + clamp(2rem, 5vw, 4rem));
+    padding-bottom: clamp(2.5rem, 5vw, 4rem);
+    background:
+      radial-gradient(45% 70% at 82% 20%, var(--accent-soft), transparent 70%),
+      linear-gradient(to bottom, var(--bg-deep), color-mix(in oklch, var(--bg) 70%, transparent) 80%, transparent);
+  }
+  .sky {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    mask-image: linear-gradient(to bottom, #000 60%, transparent);
+  }
+  .head-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 23rem);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+  .intro {
+    min-width: 0;
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--accent);
+  }
+  .kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .kicker .label {
+    color: var(--accent);
+  }
+  .kicker .data {
+    color: var(--text-faint);
+  }
+  h1 {
+    font-size: clamp(2.6rem, 1.6rem + 3.6vw, 5.2rem);
+    font-variation-settings: 'opsz' 144;
+    max-width: 16ch;
+    text-wrap: balance;
+  }
+  h1.long {
+    font-size: clamp(2rem, 1.5rem + 2.6vw, 4rem);
+    max-width: 20ch;
+  }
+  h1[data-script='han'] {
+    max-width: 15em;
+  }
+  h1[data-script='latin'] {
+    letter-spacing: -0.025em;
+    line-height: 1.04;
+  }
+  h1 :global(.ts-sub) {
+    margin-top: 0.4em;
+    font-size: 0.48em;
+    line-height: 1.3;
+  }
+  .subtitle {
+    margin-top: 0.85rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--step-1);
+    color: var(--accent);
+  }
+  .subtitle:lang(zh) {
+    font-style: normal;
+  }
+  .lead {
+    margin-top: 1.4rem;
+    max-width: 40rem;
+    font-size: var(--step-1);
+    line-height: 1.6;
+    color: var(--text-muted);
+    text-wrap: balance;
+  }
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1.5rem;
+  }
+
+  /* The star card: a plate from the atlas plus the work's facts and links. */
+  .card {
+    display: grid;
+    border-radius: var(--radius-plate);
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      var(--shadow);
+    overflow: hidden;
+    --rim-angle: 150deg;
+  }
+  .plate-wrap {
+    position: relative;
+    background:
+      radial-gradient(80% 80% at 50% 40%, var(--plate-hi), transparent 75%),
+      var(--plate);
+    border-bottom: 1px solid var(--line);
+  }
+  .plate-label {
+    position: absolute;
+    bottom: 0.8rem;
+    left: 1.1rem;
+    text-shadow:
+      0 0 6px var(--bg-deep),
+      0 0 2px var(--bg-deep);
+  }
+  .facts {
+    display: grid;
+  }
+  .facts > div {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.85rem 1.2rem;
+    border-bottom: 1px dashed var(--line);
+  }
+  .facts dd:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .facts dd {
+    font-size: var(--step--1);
+    line-height: 1.6;
+  }
+  .themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .themes span {
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+    font-size: var(--step--2);
+  }
+  .themes .primary {
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 60%, transparent);
+  }
+  .stack {
+    color: var(--text-muted);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem 1.2rem 1.15rem;
+  }
+
+  /* ---------- reading column ---------- */
+  .body {
+    display: grid;
+    gap: 2.5rem;
+    align-content: start;
+    padding-block: clamp(2.5rem, 5vw, 3.5rem) clamp(2rem, 4vw, 3rem);
+  }
+  .body > * {
+    max-width: 42rem;
+    min-width: 0;
+  }
+  .body h2 {
+    margin-bottom: 0.9rem;
+    color: var(--accent);
+  }
+  .description {
+    font-size: var(--step-1);
+    line-height: 1.7;
+    text-wrap: pretty;
+  }
+  .description:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+  .highlights {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .highlights li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+  .highlights :global(.icon) {
+    color: var(--accent);
+    flex: none;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .metrics div {
+    padding: 1.1rem 1.2rem;
+    background: var(--bg);
+    display: grid;
+    gap: 0.3rem;
+    align-content: start;
+  }
+  .metrics dt {
+    font-size: var(--step--1);
+    color: var(--text-muted);
+  }
+  .value {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2.1rem);
+    overflow-wrap: anywhere;
+    color: var(--accent);
+    font-variant-numeric: lining-nums tabular-nums;
+    line-height: 1.1;
+  }
+  .mnote {
+    font-size: var(--step--2);
+    color: var(--text-faint);
+    line-height: 1.5;
+  }
+  .caveats {
+    padding: 1.3rem 1.5rem 1.4rem;
+    border-radius: var(--radius-l);
+    background: color-mix(in oklch, var(--warn) 6%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warn) 30%, transparent);
+  }
+  .caveats h2 {
+    color: var(--warn);
+  }
+  .caveats ul {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .caveats li {
+    position: relative;
+    padding-left: 1.2rem;
+    color: var(--text-muted);
+  }
+  .caveats li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.8em;
+    width: 0.5rem;
+    height: 1px;
+    background: var(--warn);
+  }
+
+  .cite {
+    font-size: var(--step-0);
+    line-height: 1.7;
+  }
+  .cite em {
+    font-family: var(--font-display);
+    font-size: 1.05em;
+  }
+  .cite-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.25rem;
+    margin-top: 0.6rem;
+    color: var(--text-faint);
+  }
+  .cite-meta a {
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .bib {
+    margin-top: 1.1rem;
+    border-radius: var(--radius);
+    box-shadow: inset 0 0 0 1px var(--line);
+    background: color-mix(in oklch, var(--bg-deep) 70%, transparent);
+  }
+  .bib summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .bib summary::-webkit-details-marker {
+    display: none;
+  }
+  .toggle {
+    color: var(--text-faint);
+  }
+  .bib summary .label {
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+  .bib[open] .toggle {
+    display: none;
+  }
+  .bib-body {
+    position: relative;
+    border-top: 1px solid var(--line);
+  }
+  pre {
+    padding: 1rem 1.1rem;
+    font-size: var(--step--2);
+    line-height: 1.65;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 2;
+  }
+  .copy {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    background: var(--surface-solid);
+  }
+
+  /* ---------- related and pager ---------- */
+  .related {
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--line);
+  }
+  .related h2 {
+    margin-bottom: 0.4rem;
+    color: var(--accent);
+  }
+  .rel-grid {
+    display: grid;
+    container: cards / inline-size;
+    max-width: 44rem;
+  }
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+  .cell {
+    display: grid;
+    align-content: start;
+    gap: 0.4rem;
+    padding: 1rem 1.2rem 1.1rem;
+    border-radius: var(--radius-l);
+    box-shadow: inset 0 0 0 1px var(--line);
+    text-decoration: none;
+    transition:
+      box-shadow 0.25s,
+      transform 0.35s var(--ease-out);
+  }
+  .cell:hover {
+    color: inherit;
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, var(--line));
+  }
+  .cell .label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .cell.next {
+    text-align: right;
+    justify-items: end;
+  }
+  .t {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+  .cell:hover .t {
+    color: var(--accent);
+  }
+  .t[data-script='han'] {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .t :global(.ts-sub) {
+    font-size: 0.82em;
+  }
+  .lead:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  h1.long[data-script='latin'] {
+    max-width: 21ch;
+  }
+
+  @media (max-width: 60rem) {
+    .head-grid {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+    .card {
+      max-width: 30rem;
+    }
+  }
+  /* Tablets: the card spans the column with the plate beside the facts, when there are enough facts
+     (or links) to fill that column. A writing piece with only its themes keeps the stacked card. */
+  @media (min-width: 40.01rem) and (max-width: 60rem) {
+    .card:has(.links, .facts > div + div) {
+      max-width: none;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .card:has(.links, .facts > div + div) .plate-wrap {
+      grid-row: 1 / span 3;
+      display: grid;
+      align-content: center;
+      border-bottom: 0;
+      border-right: 1px solid var(--line);
+    }
+    .links {
+      grid-column: 2;
+    }
+  }
+  @media (max-width: 40rem) {
+    .pager {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cell.next {
+      text-align: left;
+      justify-items: start;
+    }
+  }
+</style>

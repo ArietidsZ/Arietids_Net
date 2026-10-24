@@ -1,0 +1,75 @@
+---
+import { t, type Locale } from '~/i18n';
+import type { UiKey } from '~/i18n/ui';
+
+interface Props {
+  lang: Locale;
+  status: string;
+  label?: string;
+}
+const { lang, status, label } = Astro.props;
+const _ = t(lang);
+
+// Tone answers "how settled is this?": done, usable, in progress, or not landed.
+const tone: Record<string, 'ok' | 'info' | 'warn' | 'muted'> = {
+  published: 'ok',
+  final: 'info',
+  implemented: 'info',
+  framework: 'info',
+  toolset: 'info',
+  preview: 'info',
+  archived: 'muted',
+  private: 'muted',
+  coursework: 'muted',
+  manuscript: 'warn',
+  inconclusive: 'warn',
+  competition: 'warn',
+  experimental: 'warn',
+};
+const text = label ?? _(`status.${status}` as UiKey);
+---
+
+<span class:list={['badge', tone[status] ?? 'muted']}>
+  <span class="pip" aria-hidden="true"></span>{text}
+</span>
+
+<style>
+  .badge {
+    --c: var(--muted-status);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.18rem 0.6rem 0.18rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklch, var(--c) 35%, transparent);
+    background: color-mix(in oklch, var(--c) 10%, transparent);
+    color: var(--c);
+    font-size: var(--step--2);
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .pip {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .ok {
+    --c: var(--ok);
+  }
+  .info {
+    --c: var(--info);
+  }
+  .warn {
+    --c: var(--warn);
+  }
+  .muted .pip {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px currentColor;
+  }
+  .warn .pip {
+    background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+    box-shadow: inset 0 0 0 1.5px currentColor;
+  }
+</style>

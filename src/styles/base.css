@@ -1,0 +1,449 @@
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  * {
+    margin: 0;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+  img {
+    height: auto;
+  }
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+  ul[role='list'],
+  ol[role='list'] {
+    list-style: none;
+    padding: 0;
+  }
+  p,
+  h1,
+  h2,
+  h3,
+  h4 {
+    overflow-wrap: break-word;
+  }
+}
+
+@layer base {
+  :root {
+    font-synthesis-style: none;
+  }
+  html {
+    background: var(--bg);
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--header-h) + 1.5rem);
+    hanging-punctuation: first;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    min-height: 100dvh;
+    /* Transparent so the fixed sky (Cosmos, z-index -1) shows; the page colour lives on <html>. */
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--step-0);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+    transition: color 0.5s var(--ease-out);
+  }
+
+  /* Paper grain for the day theme (a blind A/B test found it only greyed the night sky). */
+  body::before {
+    display: none;
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  :root[data-theme='day'] body::before {
+    display: block;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+  }
+
+  /* Set on the root only, so inline children inherit instead of re-declaring their own line box. */
+  :root:lang(zh) body {
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+  }
+  /* Mixed Chinese and Latin: a hair of space between scripts, and trimmed full-width punctuation. */
+  :lang(zh) {
+    text-autospace: normal;
+    text-spacing-trim: normal;
+  }
+  pre,
+  code,
+  .mono {
+    text-autospace: no-autospace;
+  }
+
+  /* Typeset titles (see components/ui/Typeset.astro). */
+  .nobr {
+    white-space: nowrap;
+  }
+  /* On the narrowest screens even a compound may break at its hyphens rather than overflow. */
+  @media (max-width: 26rem) {
+    /* An atomic box moves to the next line whole, and wraps at its own hyphens only if wider. */
+    h1 .nobr {
+      display: inline-block;
+      white-space: normal;
+    }
+  }
+  .cjk-dash {
+    font-family: var(--font-cjk-display);
+    letter-spacing: 0;
+  }
+  .ts-sub {
+    display: block;
+    margin-top: 0.25em;
+    font-size: 0.7em;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: var(--text-muted);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    font-optical-sizing: auto;
+  }
+  /* Heading typography follows the script of the title, not the language of the page. */
+  :lang(zh) :is(h1, h2, h3, h4):not([data-script='latin']),
+  :is(h1, h2, h3, h4)[data-script='han'] {
+    letter-spacing: 0.02em;
+    line-height: 1.32;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  :is(h1, h2, h3, h4)[data-script='han'] {
+    font-weight: 600;
+  }
+  :is(h1, h2, h3, h4)[data-script='latin'] {
+    letter-spacing: -0.012em;
+    line-height: 1.14;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+    text-underline-offset: 0.22em;
+    transition:
+      color 0.2s,
+      text-decoration-color 0.2s;
+  }
+  a:hover {
+    color: var(--accent);
+    text-decoration-color: currentColor;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--accent-fill);
+    color: var(--accent-ink);
+  }
+
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Cross-document view transitions (progressive enhancement). */
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.35s;
+    animation-timing-function: var(--ease-out);
+  }
+  /* The theme toggle drives its own clip-path reveal; nothing else takes part in it. */
+  :root.theme-transition * {
+    view-transition-name: none !important;
+  }
+  :root.theme-transition::view-transition-old(root),
+  :root.theme-transition::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
+}
+
+@layer base {
+  /* The header's pause switch: one-shot entrances and short loops finish at once and rest in their
+     still pose; slow rotations ([data-loop]) stop where they are instead of snapping back. */
+  :root[data-motion='off'] *:not([data-loop]),
+  :root[data-motion='off'] *::before,
+  :root[data-motion='off'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+  :root[data-motion='off'] [data-loop] {
+    animation-play-state: paused !important;
+  }
+  :root[data-motion='off'] {
+    scroll-behavior: auto;
+  }
+}
+
+@layer layout {
+  .container {
+    width: min(100% - 2 * var(--gutter), var(--max));
+    margin-inline: auto;
+  }
+  .prose-width {
+    max-width: var(--max-prose);
+  }
+  .section {
+    padding-block: calc(var(--section-gap) / 2);
+    position: relative;
+  }
+}
+
+@layer components {
+  /* Buttons. Primary is a gilt fill; ghost is a glass pill; both lift a little on hover. */
+  .btn {
+    --h: 2.9rem;
+    position: relative;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    height: var(--h);
+    padding-inline: 1.3rem;
+    border-radius: 999px;
+    font-weight: 500;
+    font-size: var(--step--1);
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      transform 0.3s var(--ease-out),
+      background-color 0.25s,
+      border-color 0.25s,
+      box-shadow 0.3s var(--ease-out),
+      color 0.2s;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  .btn:active {
+    transform: translateY(0) scale(0.98);
+  }
+  .btn-primary {
+    color: var(--accent-ink);
+    background:
+      linear-gradient(to bottom, color-mix(in oklch, var(--accent-fill-hi) 70%, transparent), transparent 55%),
+      var(--accent-fill);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 45%, transparent),
+      inset 0 -1px 0 color-mix(in oklch, black 12%, transparent),
+      0 10px 30px -12px var(--glow);
+  }
+  .btn-primary:hover {
+    color: var(--accent-ink);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 55%, transparent),
+      inset 0 -1px 0 color-mix(in oklch, black 12%, transparent),
+      0 16px 40px -12px var(--glow);
+  }
+  .btn-ghost {
+    color: var(--text);
+    border: 1px solid var(--line-strong);
+    background: color-mix(in oklch, var(--surface) 55%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .btn-ghost:hover {
+    color: var(--accent);
+    border-color: color-mix(in oklch, var(--accent) 60%, transparent);
+  }
+  .btn-icon {
+    width: var(--h);
+    padding: 0;
+  }
+  .btn-sm {
+    --h: 2.25rem;
+    padding-inline: 0.9rem;
+  }
+  .btn-sm.btn-icon {
+    padding: 0;
+  }
+  .btn[data-copied] {
+    color: var(--ok);
+    border-color: color-mix(in oklch, var(--ok) 60%, transparent);
+  }
+
+  /* A hairline border that catches light at two corners, for "plate" surfaces. */
+  .rim {
+    position: relative;
+  }
+  .rim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      var(--rim-angle, 135deg),
+      var(--rim-hi),
+      var(--rim-lo) 28%,
+      var(--rim-lo) 72%,
+      color-mix(in oklch, var(--rim-hi) 60%, transparent)
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+
+  /* Two small-type roles. `.label`: caps kickers and field names. `.data`: dates, URLs, DOIs. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  :lang(zh) .label:not(:lang(en)) {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+  }
+  /* Han text in small labels never drops below the Chinese floor, even on English pages. */
+  .label:lang(zh),
+  .label :lang(zh) {
+    font-size: max(var(--step--2), 0.78rem);
+  }
+  .data {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .muted {
+    color: var(--text-muted);
+  }
+  .faint {
+    color: var(--text-faint);
+  }
+
+  /* Scroll reveal: only hides content once JS has confirmed it can reveal it again.
+     Uses an animation rather than a transition so components remain free to set their own transitions. */
+  :root.js [data-reveal]:not(.is-visible) {
+    opacity: 0;
+  }
+  :root.js [data-reveal].is-visible {
+    animation: reveal-in 0.85s var(--ease-out) both;
+    animation-delay: calc(var(--reveal-i, 0) * 80ms);
+  }
+  @keyframes reveal-in {
+    from {
+      opacity: 0;
+      translate: 0 1rem;
+      filter: blur(6px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root.js [data-reveal]:not(.is-visible) {
+      opacity: 1;
+    }
+    :root.js [data-reveal].is-visible {
+      animation: none;
+    }
+  }
+
+  /* Preview mode: outline everything that is still awaiting approval. */
+  :root[data-marks='on'] [data-visibility='pending'] {
+    outline: 1.5px dashed color-mix(in oklch, var(--pending) 75%, transparent);
+    outline-offset: 5px;
+    border-radius: 6px;
+  }
+}

@@ -1,0 +1,75 @@
+- id: "identity.name"
+  visibility: "public"
+  text:
+    zh: "钟智博"
+    en: "Zhibo Zhong"
+- id: "identity.alias"
+  visibility: "public"
+  text: "Arietids"
+- id: "identity.github"
+  visibility: "public"
+  text: "ArietidsZ"
+  url: "https://github.com/ArietidsZ"
+- id: "contact.email"
+  visibility: "public"
+  text: "arietids@sjtu.edu.cn"
+  url: "mailto:arietids@sjtu.edu.cn"
+- id: "avatar.gold"
+  visibility: "public"
+  asset: "avatars/avatar-gold.png"
+  text:
+    zh: "金色龙与黑衣魔法师插画"
+    en: "Illustration of a mage in a dark robe reading under a golden dragon"
+- id: "avatar.blue"
+  visibility: "public"
+  asset: "avatars/avatar-blue.png"
+  text:
+    zh: "蓝金色龙与魔法师夜景插画"
+    en: "Illustration of a mage and a silver-blue dragon over a night city"
+- id: "education.current"
+  visibility: "public"
+  text:
+    zh: "上海交通大学人工智能学院，人工智能专业本科生"
+    en: "Undergraduate in Artificial Intelligence, School of Artificial
+      Intelligence, Shanghai Jiao Tong University"
+  short:
+    zh: "上海交通大学人工智能学院"
+    en: "School of AI, Shanghai Jiao Tong University"
+- id: "education.previous"
+  visibility: "public"
+  text:
+    zh: "2024 年临床医学入学（五年制），2025 年转入人工智能学院"
+    en: "Enrolled in a five-year clinical medicine program in 2024 and transferred
+      to the School of AI in 2025"
+- id: "academic.grades"
+  visibility: "public"
+  text:
+    zh: "2025-26 学年必修课学积分 95.45"
+    en: "2025-26 required-course credit-weighted average: 95.45"
+- id: "academic.english"
+  visibility: "public"
+  text:
+    zh: "TOEFL 112"
+    en: "TOEFL 112"
+- id: "direction.ongoing"
+  visibility: "public"
+  text:
+    zh: "未完待续"
+    en: "Ongoing"
+- id: "site.description"
+  visibility: "public"
+  text:
+    zh: "钟智博（Arietids），上海交通大学人工智能学院本科生，关注具身智能与医疗 AI。"
+    en: "Zhibo Zhong (Arietids), an undergraduate at the School of AI, Shanghai Jiao
+      Tong University, interested in embodied and medical AI."
+- id: "hero.tagline"
+  visibility: "public"
+  text:
+    zh: "关注医疗AI与具身智能，曾参与VLA与Agent方面项目"
+    en: "I'm interested in medical AI and embodied intelligence, with experience in
+      VLA and agent projects."
+- id: "about.open"
+  visibility: "public"
+  text:
+    zh: "欢迎来信聊研究，也欢迎合作。"
+    en: "Happy to hear from you about research or collaboration."

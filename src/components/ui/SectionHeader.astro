@@ -1,0 +1,141 @@
+---
+/**
+ * Section title in the site's chart language: the title is the head of a meteor whose trail runs
+ * across the column to the title's name in the other language, set small at the far end.
+ * The trail streaks in from the right when the header enters view.
+ */
+import { t, type Locale } from '~/i18n';
+import type { UiKey } from '~/i18n/ui';
+
+interface Props {
+  lang: Locale;
+  k: UiKey;
+  id?: string;
+  lede?: string;
+}
+const { lang, k, id, lede } = Astro.props;
+const other: Locale = lang === 'zh' ? 'en' : 'zh';
+const title = t(lang)(k);
+const alt = t(other)(k);
+---
+
+<header class="section-header" data-reveal>
+  <div class="row">
+    <h2 id={id}>{title}</h2>
+    <span class="trail" aria-hidden="true"><span class="head"></span></span>
+    <span class="alt" lang={other === 'zh' ? 'zh-CN' : 'en'} aria-hidden="true">{alt}</span>
+  </div>
+  {lede && <p class="lede">{lede}</p>}
+  <slot />
+</header>
+
+<style>
+  .section-header {
+    display: grid;
+    gap: 0.6rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.9rem, 2vw, 1.4rem);
+    min-width: 0;
+  }
+  h2 {
+    flex: none;
+    font-size: var(--step-3);
+    font-variation-settings: 'opsz' 96;
+  }
+  .trail {
+    position: relative;
+    flex: 1;
+    height: 1px;
+    min-width: 2rem;
+    background: linear-gradient(
+      to right,
+      var(--accent),
+      color-mix(in oklch, var(--accent) 35%, transparent) 18%,
+      var(--line) 55%,
+      color-mix(in oklch, var(--line) 40%, transparent)
+    );
+    transform-origin: 100% 50%;
+  }
+  /* The meteor's head sits just after the title. */
+  .head {
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    translate: 0 -50%;
+    border-radius: 50%;
+    background: var(--mark-core);
+    box-shadow:
+      0 0 6px 1px var(--glow),
+      0 0 16px 3px color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+  .alt {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .alt:lang(zh) {
+    font-family: var(--font-cjk-display);
+    font-size: var(--step--1);
+    letter-spacing: 0.32em;
+  }
+  .lede {
+    color: var(--text-muted);
+    max-width: 42rem;
+  }
+  /* Phones: the other-language name moves above the title. */
+  @media (max-width: 40rem) {
+    .row {
+      flex-wrap: wrap;
+      row-gap: 0.35rem;
+    }
+    .alt {
+      order: -1;
+      flex-basis: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :global(:root.js) .section-header .trail {
+      scale: 0 1;
+    }
+    :global(:root.js) .section-header.is-visible .trail {
+      animation: streak 1.1s var(--ease-out) 0.1s both;
+    }
+    :global(:root.js) .section-header.is-visible .head {
+      animation: flare 1.4s var(--ease-out) 0.55s both;
+    }
+  }
+  @keyframes streak {
+    from {
+      scale: 0 1;
+      opacity: 0;
+    }
+    to {
+      scale: 1 1;
+      opacity: 1;
+    }
+  }
+  @keyframes flare {
+    0% {
+      opacity: 0;
+      scale: 0.4;
+    }
+    35% {
+      opacity: 1;
+      scale: 1.9;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+</style>

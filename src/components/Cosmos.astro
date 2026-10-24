@@ -1,0 +1,135 @@
+---
+/**
+ * The sky behind every page: star dust and a faint celestial graticule, generated once at build
+ * time (seeded, so every build is identical). Two fixed layers drift at different rates as the page
+ * scrolls, which gives the long page a little depth without any script.
+ */
+const W = 1600;
+const H = 1000;
+
+function seeded(seed: number) {
+  return () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+}
+const rand = seeded(20250607);
+const round = (n: number) => Math.round(n * 10) / 10;
+
+// Dust: mostly sub-pixel motes, a few brighter stars, a quarter of them cool-tinted.
+const dust = Array.from({ length: 300 }, () => {
+  const bright = rand() > 0.94;
+  return {
+    x: round(rand() * W),
+    y: round(rand() * H * 1.2),
+    r: bright ? round(1 + rand() * 0.9) : round(0.45 + rand() * 0.55),
+    o: round((bright ? 0.55 : 0.18) + rand() * 0.35),
+    cool: rand() > 0.75,
+  };
+});
+
+// Graticule: parallels of declination around a celestial pole above the top-right corner,
+// and meridians fanning out from it, as on a printed star chart.
+const pole = { x: 1320, y: -760 };
+const parallels = [1080, 1290, 1500, 1710, 1920];
+const meridians = Array.from({ length: 9 }, (_, i) => 98 + i * 11).map((deg) => {
+  const a = (deg * Math.PI) / 180;
+  return { x2: round(pole.x + Math.cos(a) * 2600), y2: round(pole.y + Math.sin(a) * 2600) };
+});
+---
+
+<div class="cosmos" aria-hidden="true">
+  <div class="layer grat" data-loop>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+      {parallels.map((r, i) => <circle cx={pole.x} cy={pole.y} r={r} class:list={{ dashed: i % 2 === 1 }} />)}
+      {meridians.map((m) => <line x1={pole.x} y1={pole.y} x2={m.x2} y2={m.y2} />)}
+    </svg>
+  </div>
+  <div class="layer dust" data-loop>
+    <svg viewBox={`0 0 ${W} ${H * 1.2}`} preserveAspectRatio="xMidYMid slice">
+      {dust.map((d) => <circle cx={d.x} cy={d.y} r={d.r} opacity={d.o} class:list={{ cool: d.cool }} />)}
+    </svg>
+  </div>
+</div>
+
+<style>
+  .cosmos {
+    position: fixed;
+    inset: 0 0 auto;
+    height: 100lvh;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    contain: strict;
+  }
+  .layer {
+    position: absolute;
+    inset: 0;
+  }
+  .dust {
+    inset: 0 0 -20%;
+    opacity: 0.6;
+  }
+  :global(:root[data-theme='day']) .dust {
+    opacity: 0.32;
+  }
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+  .grat svg {
+    overflow: visible;
+  }
+  .grat circle,
+  .grat line {
+    fill: none;
+    stroke: var(--graticule);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .grat .dashed {
+    stroke-dasharray: 2 6;
+  }
+  /* Meridians are dotted and fainter, so long straight lines never read as scratches behind text. */
+  .grat line {
+    stroke-dasharray: 1 7;
+    stroke-linecap: round;
+    opacity: 0.7;
+  }
+  .dust circle {
+    fill: var(--dust);
+  }
+  .dust .cool {
+    fill: var(--dust-cool);
+  }
+
+  /* Drift with scroll: dust slower than the chart lines, as if nearer. */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Longhands only: folded into the shorthand by the minifier, the rule is dropped by Chrome. */
+      .dust,
+      .grat {
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+      }
+      .dust {
+        animation-name: drift-dust;
+      }
+      .grat {
+        animation-name: drift-grat;
+      }
+    }
+  }
+  @keyframes drift-dust {
+    to {
+      translate: 0 -16%;
+    }
+  }
+  @keyframes drift-grat {
+    to {
+      translate: 0 -6%;
+      rotate: -2deg;
+    }
+  }
+</style>

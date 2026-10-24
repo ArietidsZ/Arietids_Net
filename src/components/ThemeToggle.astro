@@ -1,0 +1,112 @@
+---
+import Icon from '~/components/ui/Icon.astro';
+import { t, type Locale } from '~/i18n';
+
+interface Props {
+  lang: Locale;
+}
+const _ = t(Astro.props.lang);
+---
+
+<button class="theme-toggle" type="button" data-theme-toggle aria-label={_('theme.toggle')} title={_('theme.toggle')}>
+  <span class="face night"><Icon name="moon" size={17} /></span>
+  <span class="face day"><Icon name="sun" size={18} /></span>
+</button>
+
+<script>
+  const root = document.documentElement;
+
+  function apply(next: 'day' | 'night') {
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {}
+    window.dispatchEvent(new CustomEvent('themechange', { detail: next }));
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = root.dataset.theme === 'day' ? 'night' : 'day';
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!document.startViewTransition || reduce) return apply(next);
+
+      // Reveal the new theme as a circle growing out of the button: dawn, or dusk.
+      const r = btn.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      root.classList.add('theme-transition');
+      const vt = document.startViewTransition(() => apply(next));
+      vt.ready
+        .then(() =>
+          root.animate(
+            { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+            { duration: 650, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', pseudoElement: '::view-transition-new(root)' },
+          ),
+        )
+        .catch(() => {});
+      vt.finished.finally(() => root.classList.remove('theme-transition'));
+    });
+  });
+
+  // Follow the OS until the visitor makes an explicit choice.
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem('theme');
+    } catch {}
+    if (!saved) {
+      root.dataset.theme = e.matches ? 'day' : 'night';
+      window.dispatchEvent(new CustomEvent('themechange', { detail: root.dataset.theme }));
+    }
+  });
+
+  // A page restored from the back/forward cache, or open in another tab, takes the saved choice.
+  function reconcile() {
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem('theme');
+    } catch {}
+    const next = saved === 'day' || saved === 'night' ? saved : matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'night';
+    if (next === root.dataset.theme) return;
+    root.dataset.theme = next;
+    window.dispatchEvent(new CustomEvent('themechange', { detail: next }));
+  }
+  window.addEventListener('pageshow', (e) => e.persisted && reconcile());
+  window.addEventListener('storage', (e) => e.key === 'theme' && reconcile());
+</script>
+
+<style>
+  .theme-toggle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 999px;
+    color: var(--text);
+    overflow: hidden;
+    transition: background-color 0.2s;
+  }
+  @media (hover: hover) {
+    .theme-toggle:hover {
+      background: var(--surface-2);
+    }
+  }
+  .face {
+    grid-area: 1 / 1;
+    display: grid;
+    place-items: center;
+    transition:
+      transform 0.5s var(--ease-out),
+      opacity 0.3s;
+  }
+  :global(:root[data-theme='night']) .day,
+  :global(:root[data-theme='day']) .night {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.4);
+  }
+  :global(:root[data-theme='day']) .day {
+    color: var(--accent);
+  }
+</style>

@@ -1,0 +1,338 @@
+---
+/**
+ * The paper as a "discovery plate": a small engraved star plate beside the citation. The plate's
+ * figure is the paper's subject drawn as a constellation in three tiers (a first-magnitude star,
+ * three of the second, five faint ones), with the open-access licence as a seal on the rim.
+ */
+import type { CollectionEntry } from 'astro:content';
+import SectionHeader from '~/components/ui/SectionHeader.astro';
+import StatusBadge from '~/components/ui/StatusBadge.astro';
+import Icon from '~/components/ui/Icon.astro';
+import Typeset from '~/components/ui/Typeset.astro';
+import { localePath, t, tr, type Locale } from '~/i18n';
+import { bibtex } from '~/lib/cite';
+import { script } from '~/lib/typeset';
+
+interface Props {
+  lang: Locale;
+  papers: CollectionEntry<'work'>[];
+}
+const { lang, papers } = Astro.props;
+const _ = t(lang);
+
+// Three tiers, each wired to the nearer stars of the tier below.
+const tiers = [[160], [82, 160, 238], [44, 102, 160, 218, 276]];
+const ys = [58, 128, 192];
+const nodes = tiers.flatMap((xs, ti) => xs.map((x, k) => ({ x, y: ys[ti]! + (ti === 2 ? (k % 2) * 8 : 0), tier: ti })));
+const wires = nodes.flatMap((a) =>
+  nodes.filter((b) => b.tier === a.tier + 1 && Math.abs(b.x - a.x) <= 80).map((b) => ({ x1: a.x, y1: a.y, x2: b.x, y2: b.y })),
+);
+// Faint field stars, seeded so the plate is the same on every build.
+let seed = 80;
+const rand = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+const field = Array.from({ length: 46 }, () => ({ x: 12 + rand() * 296, y: 12 + rand() * 236, r: 0.4 + rand() * 0.8, o: 0.2 + rand() * 0.5 }));
+---
+
+<section id="publication" class="section container" aria-labelledby="pub-title">
+  <SectionHeader lang={lang} k="section.publication" id="pub-title" />
+
+  {
+    papers.map((p) => {
+      const c = p.data.citation;
+      const bib = bibtex(p);
+      const title = tr(p.data.title, lang);
+      // The seal is a stamp, set like the astrolabe ring in Latin caps in both languages.
+      const seal = c?.license ? `OPEN ACCESS · ${c.license} · ` : '';
+      return (
+        <article class="paper" data-visibility={p.data.visibility} data-reveal>
+          <div class="plate rim" aria-hidden="true">
+            <svg viewBox="0 0 320 260" class="figure">
+              <defs>
+                <path id={`seal-${p.id}`} d="M274,52 m-25,0 a25,25 0 1,1 50,0 a25,25 0 1,1 -50,0" />
+              </defs>
+              {field.map((f) => (
+                <circle cx={f.x.toFixed(1)} cy={f.y.toFixed(1)} r={f.r.toFixed(2)} opacity={f.o.toFixed(2)} class="fs" />
+              ))}
+              {wires.map((w, i) => (
+                <line x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2} class="wire" style={`--d:${i * 0.12}s`} />
+              ))}
+              {nodes.map((n) => (
+                <g class={`star t${n.tier}`} transform={`translate(${n.x} ${n.y})`}>
+                  {n.tier === 0 && <path class="spikes" d="M-16 0H16M0 -16V16" />}
+                  <circle r={n.tier === 0 ? 5.2 : n.tier === 1 ? 3.4 : 2} />
+                </g>
+              ))}
+              {seal && (
+                <g class="seal">
+                  <circle cx="274" cy="52" r="31" class="seal-ring" />
+                  <circle cx="274" cy="52" r="18" class="seal-ring inner" />
+                  <text>
+                    <textPath href={`#seal-${p.id}`} textLength="154">
+                      {seal}
+                    </textPath>
+                  </text>
+                  <path class="seal-mark" d="M274 44l2.2 5.6 6 .3-4.7 3.7 1.6 5.8-5.1-3.3-5.1 3.3 1.6-5.8-4.7-3.7 6-.3Z" />
+                </g>
+              )}
+            </svg>
+            {c && (
+              <span class="plate-label data">
+                {c.venue} {c.volume} · {c.article}
+              </span>
+            )}
+          </div>
+
+          <div class="body">
+            <div class="top">
+              <StatusBadge lang={lang} status={p.data.status} />
+              {p.data.role && <span class="role">{tr(p.data.role, lang)}</span>}
+              {c && <span class="year data">{c.year}</span>}
+            </div>
+            <h3 data-script={script(title)} data-vt-title={p.id} lang={lang === 'zh' && script(title) === 'latin' ? 'en' : undefined}>
+              <a href={localePath(lang, `/work/${p.id}/`)}>
+                <Typeset text={title} />
+              </a>
+            </h3>
+            {p.data.subtitle && lang === 'zh' && <p class="subtitle">{tr(p.data.subtitle, lang)}</p>}
+            <p class="summary">
+              <Typeset text={tr(p.data.summary, lang)} />
+            </p>
+
+            {c && (
+              <p class="cite" lang="en">
+                {/* A no-break space before each dot keeps the separator at the end of a line, never the start. */}
+                {c.authors.join(', ')}{'\u00a0· '}<em>{c.venue}</em> {c.volume}, {c.article} ({c.year})
+                {c.conference && `\u00a0· ${c.conference}`}
+              </p>
+            )}
+
+            <div class="actions">
+              {p.data.links.map((l) => (
+                <a class="btn btn-ghost btn-sm" href={l.url} target="_blank" rel="noopener">
+                  <Icon name={l.kind === 'doi' ? 'link' : 'doc'} size={15} />
+                  {tr(l.label, lang)}
+                  <Icon name="arrow-up-right" size={13} />
+                </a>
+              ))}
+              {bib && (
+                <button class="btn btn-ghost btn-sm" type="button" data-copy={bib} data-copied-label={_('pub.copied')}>
+                  <Icon name="copy" size={15} />
+                  <span data-copy-label>{_('pub.copyBibtex')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </article>
+      );
+    })
+  }
+</section>
+
+<script>
+  import '~/scripts/copy';
+</script>
+
+<style>
+  .paper {
+    display: grid;
+    grid-template-columns: minmax(15rem, 0.8fr) minmax(0, 1.4fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: center;
+  }
+  .paper + .paper {
+    margin-top: 2.5rem;
+  }
+
+  /* ---------- plate ---------- */
+  .plate {
+    position: relative;
+    aspect-ratio: 32 / 26;
+    border-radius: var(--radius-plate);
+    background:
+      radial-gradient(70% 70% at 50% 30%, var(--plate-hi), transparent 75%),
+      var(--plate);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      inset 0 24px 50px -36px var(--plate-inset),
+      var(--shadow);
+    overflow: hidden;
+    container-type: inline-size;
+    --rim-angle: 145deg;
+  }
+  .figure {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .fs {
+    fill: var(--text);
+  }
+  .wire {
+    stroke: color-mix(in oklch, var(--accent) 45%, transparent);
+    stroke-width: 0.8;
+    stroke-dasharray: 2 4;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .wire {
+      animation: flow 3.2s linear infinite;
+      animation-delay: var(--d);
+    }
+    .t0 circle {
+      animation: pulse 4s ease-in-out infinite;
+    }
+  }
+  @keyframes flow {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.75;
+    }
+  }
+  .star circle {
+    fill: var(--text);
+  }
+  .t0 circle {
+    fill: var(--accent-fill-hi);
+    filter: drop-shadow(0 0 6px var(--glow));
+  }
+  :global(:root[data-theme='day']) .t0 circle {
+    fill: var(--accent);
+  }
+  .spikes {
+    stroke: color-mix(in oklch, var(--accent-fill-hi) 70%, transparent);
+    stroke-width: 0.8;
+  }
+  .t1 circle {
+    fill: color-mix(in oklch, var(--accent-fill-hi) 70%, var(--text));
+    filter: drop-shadow(0 0 3px var(--glow));
+  }
+  :global(:root[data-theme='day']) .t1 circle {
+    fill: color-mix(in oklab, var(--accent) 75%, var(--text));
+  }
+  .t2 circle {
+    fill: var(--accent-2);
+  }
+  .seal {
+    transform-origin: 274px 52px;
+    rotate: -14deg;
+  }
+  .seal-ring {
+    fill: none;
+    stroke: color-mix(in oklch, var(--ok) 55%, transparent);
+    stroke-width: 0.8;
+  }
+  .seal-ring.inner {
+    stroke-dasharray: 1 2.5;
+  }
+  .seal text {
+    font-family: var(--font-mono);
+    font-size: 6.4px;
+    letter-spacing: 0.08em;
+    fill: var(--ok);
+    text-transform: uppercase;
+  }
+  .seal-mark {
+    fill: color-mix(in oklch, var(--ok) 70%, transparent);
+  }
+  .plate-label {
+    position: absolute;
+    bottom: 0.95rem;
+    left: 1.15rem;
+    color: var(--text-faint);
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+  /* On a narrow plate the caption would wrap into the figure: the citation beside it says the same. */
+  @container (max-width: 18rem) {
+    .plate-label {
+      display: none;
+    }
+  }
+
+  /* ---------- body ---------- */
+  .body {
+    display: grid;
+    gap: 0.75rem;
+    align-content: center;
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .role {
+    font-size: var(--step--1);
+    color: var(--text-muted);
+  }
+  .year {
+    margin-left: auto;
+    color: var(--text-faint);
+  }
+  h3 {
+    font-size: var(--step-3);
+    line-height: 1.12;
+    font-variation-settings: 'opsz' 96;
+    text-wrap: balance;
+  }
+  h3 a {
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0 1px;
+    transition:
+      background-size 0.5s var(--ease-out),
+      color 0.2s;
+  }
+  h3 a:hover {
+    background-size: 100% 1px;
+  }
+  .subtitle {
+    font-family: var(--font-cjk-display);
+    color: var(--accent);
+    font-size: var(--step-1);
+  }
+  .summary:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: var(--step-0);
+  }
+  .cite {
+    font-size: var(--step--1);
+    color: var(--text-muted);
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--line);
+  }
+  .cite em {
+    font-family: var(--font-display);
+    font-size: 1.05em;
+    color: var(--text);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  @media (max-width: 44rem) {
+    .paper {
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    .plate {
+      aspect-ratio: 32 / 19;
+    }
+    .plate-label {
+      display: none;
+    }
+    .actions :global(.btn) {
+      padding-inline: 0.8rem;
+    }
+  }
+</style>

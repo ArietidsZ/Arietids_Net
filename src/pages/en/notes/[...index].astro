@@ -1,0 +1,11 @@
+---
+import NotesIndex from '~/views/NotesIndex.astro';
+import { getNotes } from '~/lib/content';
+
+// The notes index exists only once there is something to list.
+export async function getStaticPaths() {
+  return (await getNotes('en')).length ? [{ params: { index: undefined } }] : [];
+}
+---
+
+<NotesIndex lang="en" />
