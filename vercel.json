@@ -34,7 +34,17 @@
   ],
   "redirects": [
     {
+      "source": "/blog/:path*/",
+      "destination": "https://blog.arietids.net/:path*",
+      "permanent": true
+    },
+    {
       "source": "/blog/:path*",
+      "destination": "https://blog.arietids.net/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/notes/:path*/",
       "destination": "https://blog.arietids.net/:path*",
       "permanent": true
     },
@@ -49,7 +59,17 @@
       "permanent": true
     },
     {
+      "source": "/en/blog/:path*/",
+      "destination": "https://blog.arietids.net/en/:path*",
+      "permanent": true
+    },
+    {
       "source": "/en/blog/:path*",
+      "destination": "https://blog.arietids.net/en/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/en/notes/:path*/",
       "destination": "https://blog.arietids.net/en/:path*",
       "permanent": true
     },
