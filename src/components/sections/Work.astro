@@ -188,12 +188,12 @@ let index = 0;
   .group-label::after {
     content: '';
     flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, var(--line), transparent);
+    height: var(--hairline);
+    background: linear-gradient(to right, var(--line-strong), transparent);
   }
   .group-label .data {
     order: 2;
-    color: var(--accent);
+    color: var(--text-faint);
   }
   .grid {
     container: cards / inline-size;
@@ -237,27 +237,40 @@ let index = 0;
 
   /* GitHub closes the section as one full-width strip, so no row is ever left half empty. */
   .channel {
+    position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 1.1rem;
     padding: 1rem 1.35rem;
-    border-radius: var(--radius-l);
+    border-radius: var(--r-card);
+    corner-shape: var(--corner);
     text-decoration: none;
-    background:
-      radial-gradient(circle at 1px 1px, color-mix(in oklch, var(--text) 9%, transparent) 1px, transparent 0) 0 0 / 14px 14px,
-      color-mix(in oklch, var(--card) 70%, transparent);
-    box-shadow: inset 0 0 0 1px var(--line);
-    transition:
-      box-shadow 0.3s,
-      transform 0.4s var(--ease-out);
+    background: var(--card-glass);
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-1);
+    transition: translate var(--spring-dur) var(--spring);
   }
-  .channel:hover {
-    color: inherit;
-    transform: translateY(-2px);
-    box-shadow:
-      inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, var(--line)),
-      var(--shadow);
+  .channel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    corner-shape: inherit;
+    box-shadow: var(--elev-3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s var(--ease-out);
+  }
+  @media (hover: hover) {
+    .channel:hover {
+      color: inherit;
+      translate: 0 -2px;
+    }
+    .channel:hover::after {
+      opacity: 1;
+    }
   }
   .ch-icon {
     display: grid;
@@ -266,15 +279,15 @@ let index = 0;
     height: 2.75rem;
     border-radius: 50%;
     color: var(--text);
-    background: var(--surface-2);
-    box-shadow: inset 0 0 0 1px var(--line-strong);
+    background: color-mix(in oklch, var(--text) 7%, transparent);
+    box-shadow: inset 0 0 0 var(--hairline) var(--line-strong);
   }
   .ch-text {
     display: grid;
     gap: 0.1rem;
   }
   .ch-head {
-    color: var(--accent);
+    color: var(--text-faint);
   }
   .ch-title {
     font-family: var(--font-display);
@@ -289,7 +302,7 @@ let index = 0;
     transition: color 0.2s;
   }
   .channel:hover .ch-url {
-    color: var(--accent);
+    color: var(--text);
   }
   @media (max-width: 40rem) {
     .channel {

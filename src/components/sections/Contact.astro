@@ -160,7 +160,8 @@ const [user, domain] = email ? tr(email.text, lang).split('@') : [];
     flex: none;
     border-radius: 50%;
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, transparent);
+    background: color-mix(in oklch, var(--accent) 8%, transparent);
+    box-shadow: inset 0 0 0 var(--hairline) color-mix(in oklch, var(--accent) 45%, transparent);
   }
   .ping::after {
     content: '';

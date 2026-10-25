@@ -144,7 +144,7 @@
     font-family: var(--font-display);
     font-weight: 500;
     line-height: 1.12;
-    letter-spacing: -0.015em;
+    letter-spacing: var(--track-title);
     text-wrap: balance;
     font-optical-sizing: auto;
   }
@@ -203,7 +203,7 @@
 
   hr {
     border: 0;
-    border-top: 1px solid var(--line);
+    border-top: var(--hairline) solid var(--line);
   }
 
   /* Cross-document view transitions (progressive enhancement). */
@@ -278,61 +278,69 @@
 }
 
 @layer components {
-  /* Buttons. Primary is a gilt fill; ghost is a glass pill; both lift a little on hover. */
+  /* Buttons: capsules that answer the finger, not the cursor. A press sinks the button a few
+     percent and a spring brings it back; hover only brightens. Primary is a gilt fill with a lit
+     top edge; ghost is a glass capsule with a hairline. Labels are trimmed to cap height, so a
+     label sits optically centred whatever its script. */
   .btn {
-    --h: 2.9rem;
+    --h: 2.75rem;
+    --fill: transparent;
     position: relative;
-    border: 1px solid transparent;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
+    gap: 0.5rem;
     height: var(--h);
-    padding-inline: 1.3rem;
+    padding-inline: 1.25rem;
+    border: 0;
     border-radius: 999px;
+    background-color: var(--fill);
     font-weight: 500;
     font-size: var(--step--1);
+    letter-spacing: 0.01em;
     line-height: 1;
+    text-box: trim-both cap alphabetic;
     text-decoration: none;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
     transition:
-      transform 0.3s var(--ease-out),
+      scale var(--snappy-dur) var(--spring-snappy),
       background-color 0.25s,
-      border-color 0.25s,
-      box-shadow 0.3s var(--ease-out),
+      box-shadow 0.3s,
       color 0.2s;
   }
-  .btn:hover {
-    transform: translateY(-2px);
-  }
   .btn:active {
-    transform: translateY(0) scale(0.98);
+    scale: 0.96;
+    transition-duration: 0.12s, 0.25s, 0.3s, 0.2s;
+    transition-timing-function: ease-out;
+  }
+  .btn :is(svg, .icon) {
+    flex: none;
   }
   .btn-primary {
+    --fill: var(--accent-fill);
     color: var(--accent-ink);
-    background:
-      linear-gradient(to bottom, color-mix(in oklch, var(--accent-fill-hi) 70%, transparent), transparent 55%),
-      var(--accent-fill);
+    background-image: linear-gradient(to bottom, oklch(1 0 0 / 0.26), oklch(1 0 0 / 0) 58%);
     box-shadow:
-      inset 0 1px 0 color-mix(in oklch, white 45%, transparent),
-      inset 0 -1px 0 color-mix(in oklch, black 12%, transparent),
-      0 10px 30px -12px var(--glow);
+      inset 0 var(--hairline) 0 oklch(1 0 0 / 0.55),
+      inset 0 0 0 var(--hairline) color-mix(in oklch, var(--accent-ink) 16%, transparent),
+      var(--elev-1);
   }
   .btn-primary:hover {
+    --fill: color-mix(in oklch, var(--accent-fill) 82%, var(--accent-fill-hi));
     color: var(--accent-ink);
-    box-shadow:
-      inset 0 1px 0 color-mix(in oklch, white 55%, transparent),
-      inset 0 -1px 0 color-mix(in oklch, black 12%, transparent),
-      0 16px 40px -12px var(--glow);
   }
   .btn-ghost {
+    --fill: var(--pill-glass);
     color: var(--text);
-    border: 1px solid var(--line-strong);
-    background: var(--pill-glass);
+    box-shadow:
+      inset 0 0 0 var(--hairline) var(--line-strong),
+      var(--edge-lit);
   }
   .btn-ghost:hover {
-    color: var(--accent);
-    border-color: color-mix(in oklch, var(--accent) 60%, transparent);
+    --fill: color-mix(in oklch, var(--pill-glass), var(--text) 7%);
+    color: var(--text);
   }
   .btn-icon {
     width: var(--h);
@@ -340,6 +348,7 @@
   }
   .btn-sm {
     --h: 2.25rem;
+    gap: 0.4rem;
     padding-inline: 0.9rem;
   }
   .btn-sm.btn-icon {
@@ -347,21 +356,41 @@
   }
   .btn[data-copied] {
     color: var(--ok);
-    border-color: color-mix(in oklch, var(--ok) 60%, transparent);
+    box-shadow:
+      inset 0 0 0 var(--hairline) color-mix(in oklch, var(--ok) 60%, transparent),
+      var(--edge-lit);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn:active {
+      scale: none;
+    }
   }
 
-  /* A hairline border that catches light at two corners, for "plate" surfaces. */
+
+  /* A hairline border that catches light at two corners, for "plate" surfaces. Under a fine
+     pointer a second rim (.rim-glint, scripts/rimlight.ts) takes over and turns its bright corner
+     to face the pointer. The glint is a masked ring holding a gradient square that only rotates,
+     so the turn is a compositor transition: nothing is restyled or repainted while it runs. */
   .rim {
     position: relative;
   }
-  .rim::after {
+  .rim::after,
+  .rim > .rim-glint {
     content: '';
     position: absolute;
     inset: 0;
     z-index: 2;
-    padding: 1px;
+    padding: var(--hairline);
     border-radius: inherit;
+    corner-shape: inherit;
     pointer-events: none;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    transition: opacity 0.4s;
+  }
+  .rim::after,
+  .rim-glint > * {
     background: linear-gradient(
       var(--rim-angle, 135deg),
       var(--rim-hi),
@@ -369,9 +398,30 @@
       var(--rim-lo) 72%,
       color-mix(in oklch, var(--rim-hi) 60%, transparent)
     );
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
+  }
+  .rim > .rim-glint {
+    opacity: 0;
+    container-type: size;
+  }
+  /* A square as wide as the plate's diagonal, so it covers the ring at any angle. */
+  .rim-glint > * {
+    --rim-angle: 0deg;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: hypot(100cqw, 100cqh);
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    transition: rotate 0.9s var(--spring);
+  }
+  .rim[data-rim-live]::after {
+    opacity: 0;
+  }
+  .rim[data-rim-live] > .rim-glint {
+    opacity: 1;
+  }
+  .rim[data-rim-live] > .rim-glint > * {
+    will-change: rotate;
   }
 
   /* The animated sky (scripts/sky.ts): a stack of layers in one masked box that fills its section.
@@ -401,7 +451,7 @@
     font-family: var(--font-mono);
     font-size: var(--step--2);
     font-weight: 500;
-    letter-spacing: 0.14em;
+    letter-spacing: var(--track-caps);
     text-transform: uppercase;
     color: var(--text-faint);
   }
@@ -453,14 +503,15 @@
   :root.js [data-reveal]:not(.is-visible) {
     opacity: 0;
   }
+  /* Content rises on a long, critically damped spring: it arrives fast and settles without bounce. */
   :root.js [data-reveal].is-visible {
-    animation: reveal-in 0.85s var(--ease-out) backwards;
-    animation-delay: calc(var(--reveal-i, 0) * 80ms);
+    animation: reveal-in 1.1s var(--spring) backwards;
+    animation-delay: calc(var(--reveal-i, 0) * 70ms);
   }
   @keyframes reveal-in {
     from {
       opacity: 0;
-      translate: 0 1rem;
+      translate: 0 1.5rem;
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -528,6 +579,11 @@
   .hero {
     min-height: auto !important;
     margin-top: 0 !important;
+  }
+  /* Scroll-linked effects hold whatever offset the screen had: the paper gets the resting pose. */
+  .hero .copy,
+  .hero .portrait {
+    animation: none !important;
   }
   article,
   figure,

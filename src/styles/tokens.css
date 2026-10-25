@@ -88,18 +88,107 @@
 
     /* Space & shape */
     --gutter: clamp(1rem, 0.6rem + 2vw, 2.5rem);
-    --section-gap: clamp(3.5rem, 2.4rem + 4.5vw, 6.5rem);
+    --section-gap: clamp(4.5rem, 2.6rem + 6vw, 8.5rem);
     --max: 76rem;
     --max-prose: 40rem;
     --radius-s: 0.5rem;
     --radius: 0.9rem;
     --radius-l: 1.4rem;
     --radius-plate: 1.75rem;
-    --header-h: 3.75rem;
+    --header-h: 3.5rem;
 
     --shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 20px 50px -20px oklch(0 0 0 / 0.6);
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+    /* Edges. A hairline is one device pixel: 1px on standard screens, 0.5px on Retina (below). */
+    --hairline: 1px;
+    /* Light falls from above: a lit top edge and a hairline all round, for raised surfaces. */
+    --edge: inset 0 0 0 var(--hairline) var(--line);
+    --edge-lit: inset 0 var(--hairline) 0 oklch(1 0 0 / 0.07);
+    /* Elevation: a tight contact shadow, a mid shadow and a wide ambient one, as real light makes. */
+    --shade: 0 0 0;
+    --elev-1: 0 1px 1px oklch(var(--shade) / 0.16), 0 2px 6px -1px oklch(var(--shade) / 0.2);
+    --elev-2:
+      0 1px 1px oklch(var(--shade) / 0.14), 0 4px 10px -3px oklch(var(--shade) / 0.24),
+      0 18px 36px -14px oklch(var(--shade) / 0.42);
+    --elev-3:
+      0 1px 2px oklch(var(--shade) / 0.14), 0 8px 18px -6px oklch(var(--shade) / 0.28),
+      0 32px 64px -20px oklch(var(--shade) / 0.55);
+
+    /* Chrome (header, sheets): a translucent material over the page, as on Apple's bars. */
+    --material: color-mix(in oklch, var(--bg) 72%, transparent);
+    --material-thick: color-mix(in oklch, var(--surface-solid) 86%, transparent);
+    --material-filter: blur(20px) saturate(1.8);
+
+    /* Continuous corners where supported (corner-shape); radii scale up to keep the same visual size.
+       Surfaces take a radius from these and `corner-shape: var(--corner)`; capsules stay round. */
+    --corner: round;
+    --corner-scale: 1;
+    --r-control: calc(var(--radius) * var(--corner-scale));
+    --r-card: calc(var(--radius-l) * var(--corner-scale));
+    --r-plate: calc(var(--radius-plate) * var(--corner-scale));
+
+    /* Motion: damped springs sampled into linear() (response / damping fraction: 0.5 s / 1,
+       0.42 s / 0.82, 0.55 s / 0.68). --spring is critically damped and settles in --spring-dur;
+       --spring-snappy and --spring-bouncy overshoot by 1% and 5%, for presses and toggles. Older
+       browsers get the nearest cubic-bezier. */
+    --spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --spring-snappy: cubic-bezier(0.2, 0.9, 0.3, 1.02);
+    --spring-bouncy: cubic-bezier(0.3, 1.3, 0.4, 1);
+    --spring-dur: 0.72s;
+    --snappy-dur: 0.56s;
+    --bouncy-dur: 0.9s;
+
+    /* Tracking by size: display type closes up, small caps open out. */
+    --track-display: -0.022em;
+    --track-title: -0.012em;
+    --track-caps: 0.1em;
+  }
+
+  /* Retina: separators drop to one device pixel, a touch stronger so they read the same. */
+  @media (min-resolution: 2dppx) {
+    :root {
+      --hairline: 0.5px;
+    }
+    :root:not([data-theme='day']) {
+      --line: oklch(0.92 0.02 260 / 0.13);
+      --line-strong: oklch(0.92 0.02 260 / 0.24);
+    }
+    :root[data-theme='day'] {
+      --line: oklch(0.3 0.04 266 / 0.16);
+      --line-strong: oklch(0.3 0.04 266 / 0.27);
+    }
+  }
+
+  @supports (transition-timing-function: linear(0, 1)) {
+    :root {
+      --spring: linear(0, 0.067, 0.205, 0.358, 0.5, 0.62, 0.716, 0.791, 0.848, 0.891, 0.922, 0.944, 0.961, 0.972, 0.981, 0.987, 0.991, 0.994, 0.996, 0.997, 0.998, 0.999, 1);
+      --spring-snappy: linear(0, 0.046, 0.152, 0.286, 0.423, 0.551, 0.663, 0.757, 0.831, 0.889, 0.932, 0.962, 0.983, 0.997, 1.005, 1.009, 1.011, 1.011, 1.01, 1.009, 1.007, 1.006, 1.004, 1.003, 1.002, 1.002, 1);
+      --spring-bouncy: linear(0, 0.051, 0.172, 0.326, 0.486, 0.634, 0.761, 0.863, 0.94, 0.994, 1.028, 1.046, 1.054, 1.053, 1.048, 1.04, 1.031, 1.023, 1.016, 1.01, 1.005, 1.001, 0.999, 0.998, 0.997, 0.997, 0.997, 0.998, 0.998, 0.999, 1);
+    }
+  }
+
+  /* A superellipse keeps its curve inside the radius box, so it reads smaller: scale radii up. */
+  @supports (corner-shape: superellipse(1.6)) {
+    :root {
+      --corner: superellipse(1.6);
+      --corner-scale: 1.32;
+    }
+  }
+
+  /* Wide-gamut screens get a richer gilt; sRGB screens keep the values above. */
+  @media (color-gamut: p3) {
+    :root:not([data-theme='day']) {
+      --accent: oklch(0.84 0.13 83);
+      --accent-fill: oklch(0.85 0.135 82);
+      --accent-fill-hi: oklch(0.93 0.1 90);
+    }
+    :root[data-theme='day'] {
+      --accent: oklch(0.5 0.135 60);
+      --accent-fill: oklch(0.79 0.15 79);
+      --mark-core: oklch(0.63 0.165 64);
+    }
   }
 
   /* Han at 12px is at the edge of legibility: small steps get a floor on Chinese pages. */
@@ -162,5 +251,17 @@
     --sky-scope: 45 75 150;
 
     --shadow: 0 1px 0 oklch(1 0 0 / 0.6) inset, 0 18px 40px -24px oklch(0.3 0.05 266 / 0.35);
+
+    /* On paper, shadows take the ink's hue and fall softer; the lit edge is bright white. */
+    --shade: 0.32 0.05 266;
+    --edge-lit: inset 0 var(--hairline) 0 oklch(1 0 0 / 0.75);
+    --elev-1: 0 1px 1px oklch(var(--shade) / 0.06), 0 2px 6px -1px oklch(var(--shade) / 0.08);
+    --elev-2:
+      0 1px 1px oklch(var(--shade) / 0.05), 0 4px 10px -3px oklch(var(--shade) / 0.08),
+      0 18px 36px -14px oklch(var(--shade) / 0.16);
+    --elev-3:
+      0 1px 2px oklch(var(--shade) / 0.06), 0 8px 18px -6px oklch(var(--shade) / 0.1),
+      0 32px 64px -20px oklch(var(--shade) / 0.22);
+    --material: color-mix(in oklch, var(--bg) 74%, transparent);
   }
 }

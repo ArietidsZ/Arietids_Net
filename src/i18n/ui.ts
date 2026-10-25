@@ -18,6 +18,7 @@ const zh = {
   'theme.toggle': '切换日夜主题',
   'motion.pause': '暂停动画',
   'lang.switch': 'English',
+  'lang.short': 'EN',
 
   'hero.cta.work': '研究与项目',
   'hero.scroll': '向下',
@@ -133,6 +134,7 @@ const en: Record<UiKey, string> = {
   'theme.toggle': 'Switch between night and day',
   'motion.pause': 'Pause animation',
   'lang.switch': '中文',
+  'lang.short': '中文',
 
   'hero.cta.work': 'Research & projects',
   'hero.scroll': 'Scroll',

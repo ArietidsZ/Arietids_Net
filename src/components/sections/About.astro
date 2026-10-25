@@ -180,15 +180,20 @@ const nowIndex = timeline.findLastIndex((i) => !i.data.future);
     align-content: start;
     min-width: 0;
   }
+  /* Years in the text colour; only "now" is gilt, so the eye lands where the trail burns out. */
   .when {
     height: var(--when-h);
     margin-bottom: 0;
     font-family: var(--font-display);
     font-size: var(--step-1);
     font-variant-numeric: lining-nums tabular-nums;
+    font-variation-settings: 'opsz' 36;
     line-height: 1.1;
-    color: var(--accent);
+    color: var(--text);
     white-space: nowrap;
+  }
+  .now .when {
+    color: var(--accent);
   }
   .future .when {
     color: var(--text-faint);
@@ -213,7 +218,7 @@ const nowIndex = timeline.findLastIndex((i) => !i.data.future);
   }
   .step.next::before {
     height: 0;
-    border-top: 1.5px dotted color-mix(in oklch, var(--text-faint) 80%, transparent);
+    border-top: 1.5px dotted color-mix(in oklch, var(--text-faint) 70%, transparent);
     translate: 0 -0.75px;
   }
   .step:last-child::before {
@@ -306,11 +311,8 @@ const nowIndex = timeline.findLastIndex((i) => !i.data.future);
     display: grid;
     gap: 0.9rem;
     align-content: start;
-    padding-top: 1rem;
-    border-top: 1px solid var(--line);
-  }
-  .col > .label {
-    color: var(--accent);
+    padding-top: 1.1rem;
+    border-top: var(--hairline) solid var(--line-strong);
   }
   .school {
     font-family: var(--font-display);
@@ -331,8 +333,8 @@ const nowIndex = timeline.findLastIndex((i) => !i.data.future);
     display: grid;
     grid-template-columns: 5rem minmax(0, 1fr);
     gap: 1rem;
-    padding: 0.55rem 0;
-    border-top: 1px dashed var(--line);
+    padding: 0.6rem 0;
+    border-top: var(--hairline) solid var(--line);
     font-size: var(--step--1);
     line-height: 1.6;
     font-variant-numeric: tabular-nums;
@@ -353,7 +355,7 @@ const nowIndex = timeline.findLastIndex((i) => !i.data.future);
     line-height: 1.55;
   }
   .date {
-    color: var(--accent);
+    color: var(--text-faint);
   }
   .honor {
     text-wrap: balance;

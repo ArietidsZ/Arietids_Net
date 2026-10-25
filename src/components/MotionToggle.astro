@@ -13,8 +13,8 @@ const _ = t(Astro.props.lang);
 ---
 
 <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" aria-label={_('motion.pause')} title={_('motion.pause')}>
-  <span class="face pause"><Icon name="pause" size={16} /></span>
-  <span class="face play"><Icon name="play" size={17} /></span>
+  <span class="face pause"><Icon name="pause" size={14} /></span>
+  <span class="face play"><Icon name="play" size={14} /></span>
 </button>
 
 <script>
@@ -56,18 +56,24 @@ const _ = t(Astro.props.lang);
     position: relative;
     display: grid;
     place-items: center;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.25rem;
+    height: 2.25rem;
     border-radius: 999px;
     color: var(--text-muted);
+    -webkit-tap-highlight-color: transparent;
     transition:
       background-color 0.2s,
-      color 0.2s;
+      color 0.2s,
+      scale var(--snappy-dur) var(--spring-snappy);
+  }
+  .motion-toggle:active {
+    scale: 0.92;
+    transition-duration: 0.2s, 0.2s, 0.1s;
   }
   @media (hover: hover) {
     .motion-toggle:hover {
       color: var(--text);
-      background: var(--surface-2);
+      background: color-mix(in oklch, var(--text) 8%, transparent);
     }
   }
   .face {
@@ -75,17 +81,17 @@ const _ = t(Astro.props.lang);
     display: grid;
     place-items: center;
     transition:
-      opacity 0.25s,
-      transform 0.35s var(--ease-out);
+      opacity 0.2s,
+      scale var(--snappy-dur) var(--spring-snappy);
   }
   .play,
   [aria-pressed='true'] .pause {
     opacity: 0;
-    transform: scale(0.6);
+    scale: 0.5;
   }
   [aria-pressed='true'] .play {
     opacity: 1;
-    transform: none;
+    scale: 1;
     color: var(--accent);
   }
 </style>

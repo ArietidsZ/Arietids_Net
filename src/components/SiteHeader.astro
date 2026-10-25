@@ -42,13 +42,13 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
 <header class="site-header" data-header>
   <div class="bar container">
     <a class="brand" href={home} title={_('nav.home')}>
-      <Logo size={26} />
+      <Logo size={24} />
       <span class="brand-name">{brand}</span>
     </a>
 
     {
       (links.length > 0 || blogHref) && (
-        <nav class="nav" aria-label={_('nav.label')}>
+        <nav class="nav" aria-label={_('nav.label')} data-spy-rail>
           <ul role="list">
             {links.map((l) => (
               <li>
@@ -59,24 +59,28 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
             ))}
             {blogHref && (
               <li>
-                <a href={blogHref}>{_('nav.blog')}</a>
+                <a href={blogHref} class="out">
+                  {_('nav.blog')}
+                  <Icon name="arrow-up-right" size={12} />
+                </a>
               </li>
             )}
           </ul>
+          <span class="spy" aria-hidden="true"></span>
         </nav>
       )
     }
 
     <div class="actions">
-      <a class="lang" href={switchHref} hreflang={other} lang={other === 'zh' ? 'zh-CN' : 'en'}>
-        {_('lang.switch')}
+      <a class="lang ctl" href={switchHref} hreflang={other} lang={other === 'zh' ? 'zh-CN' : 'en'} aria-label={_('lang.switch')}>
+        {_('lang.short')}
       </a>
       <span class="motion-slot"><MotionToggle lang={lang} /></span>
       <ThemeToggle lang={lang} />
       {
         (links.length > 0 || blogHref) && (
-          <button class="menu-btn" popovertarget="site-menu" aria-label={_('nav.menu')}>
-            <Icon name="menu" size={20} />
+          <button class="menu-btn ctl" popovertarget="site-menu" aria-label={_('nav.menu')}>
+            <Icon name="menu" size={19} />
           </button>
         )
       }
@@ -87,10 +91,10 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     (links.length > 0 || blogHref) && (
       <div id="site-menu" class="sheet" popover>
         <div class="sheet-head">
-          <span class="mono faint">{_('nav.menu')}</span>
+          <span class="label">{_('nav.menu')}</span>
           <span class="sheet-motion"><MotionToggle lang={lang} /></span>
-          <button popovertarget="site-menu" popovertargetaction="hide" aria-label={_('nav.close')}>
-            <Icon name="close" size={20} />
+          <button class="ctl" popovertarget="site-menu" popovertargetaction="hide" aria-label={_('nav.close')}>
+            <Icon name="close" size={19} />
           </button>
         </div>
         <ul role="list">
@@ -110,6 +114,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
                 {_('nav.blog')}
                 <span class="alt" lang={other === 'zh' ? 'zh-CN' : 'en'} aria-hidden="true">
                   {__('nav.blog')}
+                  <Icon name="arrow-up-right" size={12} />
                 </span>
               </a>
             </li>
@@ -135,22 +140,39 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     if (next && !sheet.contains(next) && sheet.matches(':popover-open')) sheet.hidePopover?.();
   });
 
-  // Highlight the section currently in view.
+  // Highlight the section currently in view. One mark rides the rail under the links and glides
+  // from section to section; the first time it appears in place rather than sliding in from the edge.
+  const rail = document.querySelector<HTMLElement>('[data-spy-rail]');
   const spies = new Map<string, HTMLAnchorElement>();
   document.querySelectorAll<HTMLAnchorElement>('[data-spy]').forEach((a) => spies.set(a.dataset.spy!, a));
   const sections = [...spies.keys()].map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+  let current: HTMLAnchorElement | undefined;
+  const centre = (a: HTMLAnchorElement) => `${(a.offsetLeft + a.offsetWidth / 2).toFixed(1)}px`;
+  function place() {
+    if (!rail) return;
+    if (!current) return rail.removeAttribute('data-spying');
+    const fresh = !rail.hasAttribute('data-spying');
+    rail.toggleAttribute('data-spy-jump', fresh);
+    rail.style.setProperty('--spy-x', centre(current));
+    rail.toggleAttribute('data-spying', true);
+    if (fresh) requestAnimationFrame(() => requestAnimationFrame(() => rail.removeAttribute('data-spy-jump')));
+  }
   if (sections.length) {
     // Track every section inside the reading band; the highlight clears when none is (e.g. back at the hero).
     const inBand = new Set<string>();
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) e.isIntersecting ? inBand.add(e.target.id) : inBand.delete(e.target.id);
-        const current = sections.map((s) => s.id).filter((id) => inBand.has(id)).at(-1);
-        spies.forEach((a, id) => (id === current ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+        const id = sections.map((s) => s.id).filter((s) => inBand.has(s)).at(-1);
+        spies.forEach((a, key) => (key === id ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+        current = id ? spies.get(id) : undefined;
+        place();
       },
       { rootMargin: '-45% 0px -50% 0px' },
     );
     sections.forEach((s) => io.observe(s));
+    // Webfonts and resizes move the links: keep the mark under its link.
+    if (rail) new ResizeObserver(() => current && rail.style.setProperty('--spy-x', centre(current))).observe(rail);
   }
 </script>
 
@@ -160,30 +182,18 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     top: 0;
     z-index: 50;
     height: var(--header-h);
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.4s var(--ease-out);
   }
-  /* Glass lives on a pseudo-element so it can fade in, and so the minifier never merges it away. */
+  /* The bar's material lives on a pseudo-element so it can fade in as the page moves under it. */
   .site-header::before {
     content: '';
     position: absolute;
     inset: 0;
     z-index: -1;
     opacity: 0;
-    background: color-mix(in oklch, var(--bg) 78%, transparent);
-    backdrop-filter: blur(18px) saturate(1.4);
-    box-shadow:
-      inset 0 1px 0 color-mix(in oklch, white 4%, transparent),
-      0 14px 24px -18px oklch(0 0 0 / 0.5);
+    background: var(--material);
+    backdrop-filter: var(--material-filter);
+    box-shadow: inset 0 calc(-1 * var(--hairline)) 0 var(--line);
     transition: opacity 0.4s var(--ease-out);
-  }
-  :global(:root[data-theme='day']) .site-header::before {
-    box-shadow:
-      inset 0 1px 0 oklch(1 0 0 / 0.5),
-      0 12px 24px -20px oklch(0.3 0.05 266 / 0.22);
-  }
-  .site-header[data-scrolled] {
-    border-bottom-color: var(--line);
   }
   .site-header[data-scrolled]::before {
     opacity: 1;
@@ -194,12 +204,12 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -1px;
+    bottom: 0;
     height: 1px;
     transform-origin: 0 50%;
     scale: 0 1;
     opacity: 0;
-    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--accent) 60%, transparent) 70%, var(--accent));
+    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--accent) 55%, transparent) 75%, var(--accent));
     transition: opacity 0.4s;
   }
   @supports (animation-timeline: scroll()) {
@@ -228,156 +238,199 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.55rem;
+    margin-left: -0.15rem;
     text-decoration: none;
     color: var(--text);
+    transition: opacity 0.2s;
   }
   .brand:hover {
-    color: var(--accent);
+    color: var(--text);
+    opacity: 0.72;
   }
   .brand-name {
     font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 500;
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
     font-variation-settings: 'opsz' 30;
   }
 
   .nav {
+    position: relative;
     margin-inline: auto;
   }
   .nav ul {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.15rem;
   }
   .nav a {
     position: relative;
-    display: block;
-    padding: 0.4rem 0.75rem;
-    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    height: 2.25rem;
+    padding-inline: 0.75rem;
     font-size: var(--step--1);
+    letter-spacing: 0.01em;
     color: var(--text-muted);
     text-decoration: none;
-    transition:
-      color 0.2s,
-      background-color 0.2s;
+    transition: color 0.2s;
   }
-  .nav a:hover {
-    color: var(--text);
-    background: var(--surface-2);
-  }
+  .nav a:hover,
   .nav a[aria-current] {
     color: var(--text);
   }
-  .nav a[aria-current]::after {
-    content: '';
+  .nav .out :global(.icon) {
+    opacity: 0.55;
+    translate: 0 -0.05em;
+  }
+  /* The section mark: a spark that glides along the rail on a spring. */
+  .spy {
     position: absolute;
-    left: 50%;
-    bottom: 0.05rem;
+    left: 0;
+    bottom: 0.1rem;
     width: 4px;
     height: 4px;
     margin-left: -2px;
     border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 0 8px var(--glow);
+    pointer-events: none;
+    opacity: 0;
+    translate: var(--spy-x, 0) 0;
+    transition:
+      translate var(--spring-dur) var(--spring),
+      opacity 0.3s;
+  }
+  [data-spying] > .spy {
+    opacity: 1;
+  }
+  [data-spy-jump] > .spy {
+    transition: opacity 0.3s;
   }
 
+  /* Controls: one family of 36 px capsules that show a plate only when touched or hovered. */
   .actions {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.15rem;
     margin-left: auto;
+    margin-right: -0.4rem;
   }
   .nav + .actions {
     margin-left: 0;
   }
-  .lang {
-    font-size: var(--step--1);
-    padding: 0.4rem 0.7rem;
+  .ctl {
+    display: inline-grid;
+    place-items: center;
+    min-width: 2.25rem;
+    height: 2.25rem;
     border-radius: 999px;
     color: var(--text-muted);
     text-decoration: none;
-    border: 1px solid var(--line);
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      scale var(--snappy-dur) var(--spring-snappy);
   }
-  .lang:hover {
-    color: var(--text);
-    border-color: var(--line-strong);
+  .ctl:active {
+    scale: 0.92;
+    transition-duration: 0.2s, 0.2s, 0.1s;
+  }
+  @media (hover: hover) {
+    .ctl:hover {
+      color: var(--text);
+      background: color-mix(in oklch, var(--text) 8%, transparent);
+    }
+  }
+  .lang {
+    padding-inline: 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .lang:lang(zh) {
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
   }
 
   .menu-btn {
     display: none;
-    place-items: center;
-    width: 2.4rem;
-    height: 2.4rem;
-    border-radius: 999px;
     color: var(--text);
   }
-  .menu-btn:hover {
-    background: var(--surface-2);
-  }
 
+  /* ---------- the phone sheet: the bar's material, dropping from the top corner ---------- */
   .sheet {
     inset: 0 0 auto auto;
     margin: 0.5rem;
     width: min(24rem, calc(100vw - 1rem));
-    padding: 1rem 1.25rem 1.5rem;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-l);
-    background: var(--surface-solid);
+    padding: 0.85rem 1.25rem 1.25rem;
+    border: 0;
+    border-radius: var(--r-card);
+    corner-shape: var(--corner);
+    background: var(--material-thick);
+    backdrop-filter: var(--material-filter);
     color: var(--text);
-    box-shadow: var(--shadow);
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-3);
+    transform-origin: 100% 0;
     opacity: 0;
-    translate: 0 -0.75rem;
+    scale: 0.96;
+    translate: 0 -0.5rem;
     transition:
-      opacity 0.25s var(--ease-out),
-      translate 0.25s var(--ease-out),
-      display 0.25s allow-discrete,
-      overlay 0.25s allow-discrete;
+      opacity 0.22s var(--ease-out),
+      scale var(--snappy-dur) var(--spring-snappy),
+      translate var(--snappy-dur) var(--spring-snappy),
+      display 0.3s allow-discrete,
+      overlay 0.3s allow-discrete;
   }
   .sheet:popover-open {
     opacity: 1;
+    scale: 1;
     translate: 0 0;
   }
   @starting-style {
     .sheet:popover-open {
       opacity: 0;
-      translate: 0 -0.75rem;
+      scale: 0.96;
+      translate: 0 -0.5rem;
     }
   }
   .sheet::backdrop {
-    background: oklch(0 0 0 / 0.35);
-    backdrop-filter: blur(3px);
+    background: oklch(0 0 0 / 0.3);
+    backdrop-filter: blur(2px);
   }
   .sheet-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
-  }
-  .sheet-head button {
-    display: grid;
-    place-items: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 999px;
+    margin-bottom: 0.4rem;
   }
   .sheet a {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.75rem 0;
+    padding: 0.8rem 0;
     font-family: var(--font-display);
     font-size: clamp(1.35rem, 1.2rem + 0.75vw, 1.6rem);
+    letter-spacing: var(--track-title);
     word-break: keep-all;
     text-decoration: none;
-    border-bottom: 1px solid var(--line);
+    box-shadow: inset 0 calc(-1 * var(--hairline)) 0 var(--line);
+  }
+  .sheet li:last-child a {
+    box-shadow: none;
   }
   .sheet .alt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
     text-align: right;
     font-family: var(--font-mono);
     font-size: var(--step--2);
-    letter-spacing: 0.14em;
+    letter-spacing: var(--track-caps);
     text-transform: uppercase;
     color: var(--text-faint);
   }
@@ -390,8 +443,8 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     translate: 0.75rem 0;
     transition:
       opacity 0.35s var(--ease-out),
-      translate 0.45s var(--ease-out);
-    transition-delay: calc(0.05s + var(--i) * 0.05s);
+      translate var(--spring-dur) var(--spring);
+    transition-delay: calc(0.04s + var(--i) * 0.04s);
   }
   .sheet:popover-open li {
     opacity: 1;
@@ -404,9 +457,15 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     }
   }
   @media (prefers-reduced-motion: reduce) {
+    .sheet,
+    .sheet:popover-open,
     .sheet li,
     .sheet:popover-open li {
       translate: none;
+      scale: none;
+    }
+    .spy {
+      transition: opacity 0.3s;
     }
   }
 
@@ -417,7 +476,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
   }
   .sheet-motion {
     margin-left: auto;
-    margin-right: 0.25rem;
+    margin-right: 0.15rem;
   }
   @media (max-width: 46rem) {
     .nav {
@@ -428,7 +487,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
       display: none;
     }
     .menu-btn {
-      display: grid;
+      display: inline-grid;
     }
     .actions {
       margin-left: auto !important;

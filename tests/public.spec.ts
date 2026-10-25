@@ -8,7 +8,8 @@ import { expect, test, type Page } from '@playwright/test';
 const locations = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).href);
 
 /** Transfer budgets for a first visit to the home page, in KB (woff2 and images as sent; text as decoded). */
-const BUDGET = { font: 400, image: { desktop: 200, mobile: 160 }, bothImages: { desktop: 220, mobile: 300 }, css: 80, js: 60 };
+// css: the design system (materials, elevation, spring curves, continuous corners) is ~7 KB of it, ~1.3 KB brotli.
+const BUDGET = { font: 400, image: { desktop: 200, mobile: 160 }, bothImages: { desktop: 220, mobile: 300 }, css: 90, js: 60 };
 
 function watch(page: Page) {
   const problems: string[] = [];

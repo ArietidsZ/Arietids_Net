@@ -424,14 +424,15 @@ const rays = Array.from({ length: 12 }, (_, i) => {
   .chart {
     position: relative;
     container-type: inline-size;
-    border-radius: var(--radius-plate);
+    border-radius: var(--r-plate);
+    corner-shape: var(--corner);
     background:
       radial-gradient(90% 80% at 60% 35%, var(--plate-hi), transparent 70%),
       var(--plate);
     box-shadow:
-      inset 0 0 0 1px var(--line),
+      var(--edge),
       inset 0 30px 60px -40px var(--plate-inset),
-      var(--shadow);
+      var(--elev-2);
     overflow: hidden;
     isolation: isolate;
     --rim-angle: 160deg;
@@ -793,9 +794,10 @@ const rays = Array.from({ length: 12 }, (_, i) => {
     grid-template-rows: minmax(0, 1fr) auto;
     gap: 1.1rem;
     padding: 1.25rem;
-    border-radius: var(--radius-plate);
+    border-radius: var(--r-plate);
+    corner-shape: var(--corner);
     background: var(--card-glass);
-    box-shadow: inset 0 0 0 1px var(--line);
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-1);
     --rim-angle: 200deg;
   }
   /* All states share one cell: the cell takes the tallest, so the panel never changes height. */
@@ -905,7 +907,7 @@ const rays = Array.from({ length: 12 }, (_, i) => {
     align-self: end;
     gap: 0.15rem;
     padding-top: 0.9rem;
-    border-top: 1px solid var(--line);
+    border-top: var(--hairline) solid var(--line);
   }
   .filter {
     display: grid;
@@ -914,22 +916,25 @@ const rays = Array.from({ length: 12 }, (_, i) => {
     gap: 0.7rem;
     min-height: 2.45rem;
     padding: 0.3rem 0.6rem;
-    border-radius: 0.7rem;
+    border-radius: calc(0.75rem * var(--corner-scale));
+    corner-shape: var(--corner);
     text-align: left;
     font-size: var(--step--1);
     color: var(--text-muted);
     transition:
       background-color 0.2s,
-      color 0.2s;
+      color 0.2s,
+      box-shadow 0.2s;
   }
   .filter:hover {
     color: var(--text);
-    background: var(--surface-2);
+    background: color-mix(in oklch, var(--text) 6%, transparent);
   }
+  /* The chosen theme sits on a raised plate, like the thumb of a segmented control. */
   .filter[aria-pressed='true'] {
     color: var(--text);
-    background: color-mix(in oklch, var(--accent) 12%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 35%, transparent);
+    background: color-mix(in oklch, var(--surface-solid) 92%, var(--text));
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-1);
   }
   .f-dot {
     width: 0.55rem;
@@ -985,7 +990,8 @@ const rays = Array.from({ length: 12 }, (_, i) => {
       background: none;
       box-shadow: none;
     }
-    .panel.rim::after {
+    .panel.rim::after,
+    .panel.rim > :global(.rim-glint) {
       display: none;
     }
     .detail {
@@ -1012,7 +1018,8 @@ const rays = Array.from({ length: 12 }, (_, i) => {
       min-height: 2.5rem;
       padding: 0 0.9rem;
       border-radius: 999px;
-      box-shadow: inset 0 0 0 1px var(--line);
+      corner-shape: round;
+      box-shadow: inset 0 0 0 var(--hairline) var(--line-strong);
     }
     .filters .filter:last-child {
       margin-right: 2rem;
@@ -1023,7 +1030,7 @@ const rays = Array.from({ length: 12 }, (_, i) => {
   }
   @media (max-width: 40rem) {
     .chart {
-      border-radius: var(--radius-l);
+      border-radius: var(--r-card);
     }
     .tstar {
       width: 2rem;

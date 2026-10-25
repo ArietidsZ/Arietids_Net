@@ -54,6 +54,8 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:public  # 实际�
 | 位置 | 文件 | 说明 |
 | --- | --- | --- |
 | 设计变量 | `src/styles/tokens.css` | 日夜两套色板、金色填充、"仪器面板"与卡片两级表面、星尘与经纬网颜色。新主题只需新增一组变量。 |
+| 材质与动效 | `src/styles/tokens.css`、`src/styles/base.css` | 细线在高分屏为一个物理像素（`--hairline`）；三级投影（`--elev-1..3`，近处接触阴影加远处环境阴影）；页眉与菜单为半透明材质；支持 `corner-shape` 的浏览器用连续曲率圆角（`--corner`、`--r-*`）；动效用阻尼弹簧采样成的 `linear()` 曲线（`--spring`、`--spring-snappy`、`--spring-bouncy`），不支持时退回最接近的贝塞尔曲线。广色域屏幕的金色略饱和。 |
+| 面板光泽 | `src/scripts/rimlight.ts` | 鼠标经过星图、论文图等面板时，边缘高光转向指针。高光是遮罩下只旋转的渐变层，由合成线程过渡，不重绘面板。 |
 | 全站底层 | `src/components/Cosmos.astro` | 构建时生成的星尘与经纬网，随滚动缓慢漂移（CSS scroll-driven，无脚本）。 |
 | 首屏天空 | `src/scripts/sky.ts` | 夜间：星云带、流星（渐细拖尾、余迹、火流星）。日间：以星盘为中心的雷达扫描与回波。`anchor` 指定辐射点元素，`shield` 指定需要保持可读的文字区域。详情页和 404 复用同一脚本。 |
 | 星盘头像 | `src/components/Portrait.astro` | 指针倾斜、边缘高光、翻面时可见金边、翻面后刻度环转动一格。 |
@@ -61,6 +63,9 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:public  # 实际�
 | 详情页星图 | `src/components/StarPlate.astro` | 从同一张星图裁出的局部，点亮当前作品。 |
 | 排版 | `src/lib/typeset.ts`、`src/components/ui/Typeset.astro` | 标题按文字系统（汉字/拉丁）设置字重和字距；连字符复合词不断行；`——`、`: ` 后的副标题降为第二行；汉字标题在"的/及/与"等处给出断行点；日期范围显示为短横线。只影响显示，不改文字。 |
 | 页面切换 | `src/scripts/transitions.ts`、`src/layouts/Base.astro` | 跨页 View Transitions：卡片标题过渡为详情页大标题，返回时还原。 |
+| 页眉 | `src/components/SiteHeader.astro` | 语言、暂停、主题、菜单为同一组 36 px 圆形控件；当前栏目的标记随滚动沿导航滑动；首屏随页面滚动淡出（scroll-driven）。 |
+
+主站与博客共用 `tokens.css`、`base.css`、主题与暂停开关、图标、天空脚本和面板光泽脚本，两边文件内容保持一致；修改其中之一时同步到另一个仓库。
 
 新增内容不需要手工坐标：作品写进 `work.yaml` 后会自动出现在卡片网格、星图轨道和详情页。新增主题只需在 `themes.yaml` 里用 `star` 指明对应恒星（例如 `Botein · δ Ari`）；作品的 `themes` 和经历的 `work` 只能引用已存在的 id，写错会在构建时报错。
 

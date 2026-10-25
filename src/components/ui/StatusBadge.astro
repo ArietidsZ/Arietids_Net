@@ -34,24 +34,26 @@ const text = label ?? _(`status.${status}` as UiKey);
 </span>
 
 <style>
+  /* A tinted capsule with no outline: the tone carries the meaning, the pip its shape. */
   .badge {
     --c: var(--muted-status);
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.18rem 0.6rem 0.18rem 0.5rem;
+    gap: 0.4rem;
+    padding: 0.22rem 0.62rem 0.22rem 0.52rem;
     border-radius: 999px;
-    border: 1px solid color-mix(in oklch, var(--c) 35%, transparent);
-    background: color-mix(in oklch, var(--c) 10%, transparent);
+    background: color-mix(in oklch, var(--c) 13%, transparent);
+    box-shadow: inset 0 0 0 var(--hairline) color-mix(in oklch, var(--c) 18%, transparent);
     color: var(--c);
     font-size: var(--step--2);
     font-weight: 500;
+    letter-spacing: 0.01em;
     line-height: 1.5;
     white-space: nowrap;
   }
   .pip {
-    width: 0.4rem;
-    height: 0.4rem;
+    width: 0.36rem;
+    height: 0.36rem;
     border-radius: 50%;
     background: currentColor;
   }

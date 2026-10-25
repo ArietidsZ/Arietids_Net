@@ -61,43 +61,57 @@ const title = tr(d.title, lang);
 </article>
 
 <style>
+  /* One material for every card: glass tone, a lit hairline edge, a contact shadow. Hover lifts
+     the card on a spring; the deeper shadow is its own layer and only fades, so it never repaints. */
   .card {
     position: relative;
     display: grid;
     grid-template-rows: auto auto 1fr auto auto;
-    gap: 0.5rem;
-    padding: 1.1rem 1.25rem 1rem;
-    border-radius: var(--radius-l);
+    gap: 0.55rem;
+    padding: 1.2rem 1.35rem 1.05rem;
+    border-radius: var(--r-card);
+    corner-shape: var(--corner);
     background: var(--card-glass);
-    box-shadow: inset 0 0 0 1px var(--line);
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-1);
     isolation: isolate;
-    transition:
-      box-shadow 0.3s,
-      transform 0.45s var(--ease-out);
+    transition: translate var(--spring-dur) var(--spring);
   }
-  /* Spotlight that follows the pointer (see Work.astro). */
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    border-radius: inherit;
+    corner-shape: inherit;
+    box-shadow: var(--elev-3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s var(--ease-out);
+  }
+  /* A soft light that follows the pointer across the glass (see Work.astro). */
   .card::before {
     content: '';
     position: absolute;
     inset: 0;
     z-index: -1;
     border-radius: inherit;
+    corner-shape: inherit;
     opacity: 0;
     transition: opacity 0.35s;
     background: radial-gradient(
-      26rem circle at var(--mx, 50%) var(--my, 0%),
-      color-mix(in oklch, var(--accent) 11%, transparent),
-      transparent 45%
+      24rem circle at var(--mx, 50%) var(--my, 0%),
+      color-mix(in oklch, var(--text) 7%, transparent),
+      transparent 50%
     );
   }
-  .card:hover {
-    transform: translateY(-3px);
-    box-shadow:
-      inset 0 0 0 1px color-mix(in oklch, var(--accent) 40%, var(--line)),
-      var(--shadow);
-  }
-  .card:hover::before {
-    opacity: 1;
+  @media (hover: hover) {
+    .card:hover {
+      translate: 0 -3px;
+    }
+    .card:hover::after,
+    .card:hover::before {
+      opacity: 1;
+    }
   }
   .card:has(.stretch:focus-visible) {
     outline: 2px solid var(--accent);
@@ -123,7 +137,7 @@ const title = tr(d.title, lang);
     align-items: baseline;
     gap: 0.6rem;
     margin-right: auto;
-    color: var(--accent);
+    color: var(--text-muted);
   }
   .when {
     white-space: nowrap;
@@ -134,9 +148,12 @@ const title = tr(d.title, lang);
 
   h3 {
     font-size: var(--step-1);
-    line-height: 1.28;
+    line-height: 1.26;
     font-variation-settings: 'opsz' 36;
     text-wrap: balance;
+  }
+  h3[data-script='latin'] {
+    letter-spacing: -0.008em;
   }
   h3 :global(.ts-sub) {
     font-size: 0.78em;
@@ -150,8 +167,8 @@ const title = tr(d.title, lang);
     inset: 0;
     border-radius: inherit;
   }
-  .card:hover .stretch {
-    color: var(--accent);
+  .stretch {
+    transition: color 0.2s;
   }
   .summary {
     color: var(--text-muted);
@@ -173,9 +190,9 @@ const title = tr(d.title, lang);
     align-items: flex-end;
     justify-content: space-between;
     gap: 1rem;
-    margin-top: 0.25rem;
-    padding-top: 0.7rem;
-    border-top: 1px dashed var(--line);
+    margin-top: 0.35rem;
+    padding-top: 0.75rem;
+    border-top: var(--hairline) solid var(--line);
   }
   .themes {
     display: flex;
@@ -209,12 +226,12 @@ const title = tr(d.title, lang);
   .go {
     color: var(--text-faint);
     transition:
-      transform 0.3s var(--ease-out),
+      translate var(--spring-dur) var(--spring),
       color 0.3s;
   }
   .card:hover .go {
-    color: var(--accent);
-    transform: translateX(4px);
+    color: var(--text);
+    translate: 4px 0;
   }
 
   /* In a narrow list (phones, the related list on detail pages): rows instead of boxes. */
@@ -225,14 +242,13 @@ const title = tr(d.title, lang);
       padding: 1rem 0.25rem 1.05rem;
       border-radius: 0;
       background: none;
-      box-shadow: none;
-      border-bottom: 1px solid var(--line);
+      box-shadow: inset 0 calc(-1 * var(--hairline)) 0 var(--line);
     }
     .card:hover {
-      transform: none;
-      box-shadow: none;
+      translate: none;
     }
-    .card::before {
+    .card::before,
+    .card::after {
       display: none;
     }
     .summary {

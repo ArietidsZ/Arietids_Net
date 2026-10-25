@@ -707,7 +707,10 @@ export function mountSky(host: HTMLElement, opts: SkyOptions) {
     echoes = echoes.filter((e) => {
       const t = (now - e.born) / 3600;
       if (t >= 1) return false;
-      const fade = Math.pow(1 - t, 1.5);
+      // An echo is a mark on the scope, not on the copy: none at all over shielded text.
+      const open = (clearance(e.x, e.y) - 0.24) / 0.76;
+      if (open <= 0.02) return true;
+      const fade = Math.pow(1 - t, 1.5) * open;
       ctx!.fillStyle = rgba(m, 0.85 * fade);
       ctx!.beginPath();
       ctx!.arc(e.x, e.y, e.strong ? 3.4 : 2.4, 0, TAU);

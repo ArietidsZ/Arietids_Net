@@ -413,11 +413,10 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   /* The star card: a plate from the atlas plus the work's facts and links. */
   .card {
     display: grid;
-    border-radius: var(--radius-plate);
+    border-radius: var(--r-plate);
+    corner-shape: var(--corner);
     background: var(--card-glass);
-    box-shadow:
-      inset 0 0 0 1px var(--line),
-      var(--shadow);
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-2);
     overflow: hidden;
     --rim-angle: 150deg;
   }
@@ -426,7 +425,7 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
     background:
       radial-gradient(80% 80% at 50% 40%, var(--plate-hi), transparent 75%),
       var(--plate);
-    border-bottom: 1px solid var(--line);
+    border-bottom: var(--hairline) solid var(--line);
   }
   .plate-label {
     position: absolute;
@@ -443,7 +442,7 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
     display: grid;
     gap: 0.3rem;
     padding: 0.85rem 1.2rem;
-    border-bottom: 1px dashed var(--line);
+    border-bottom: var(--hairline) solid var(--line);
   }
   .facts dd:lang(zh) {
     word-break: keep-all;
@@ -459,14 +458,16 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
     gap: 0.4rem;
   }
   .themes span {
-    padding: 0.1rem 0.6rem;
+    padding: 0.12rem 0.62rem;
     border-radius: 999px;
-    box-shadow: inset 0 0 0 1px var(--line-strong);
+    background: color-mix(in oklch, var(--text) 6%, transparent);
+    box-shadow: inset 0 0 0 var(--hairline) var(--line);
     font-size: var(--step--2);
   }
   .themes .primary {
     color: var(--accent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 60%, transparent);
+    background: color-mix(in oklch, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 var(--hairline) color-mix(in oklch, var(--accent) 30%, transparent);
   }
   .stack {
     color: var(--text-muted);
@@ -491,7 +492,6 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   }
   .body h2 {
     margin-bottom: 0.9rem;
-    color: var(--accent);
   }
   .description {
     font-size: var(--step-1);
@@ -519,11 +519,12 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   .metrics {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-    gap: 1px;
+    gap: var(--hairline);
     background: var(--line);
-    border-radius: var(--radius-l);
+    border-radius: var(--r-card);
+    corner-shape: var(--corner);
     overflow: hidden;
-    box-shadow: inset 0 0 0 1px var(--line);
+    box-shadow: var(--edge);
   }
   .metrics div {
     padding: 1.1rem 1.2rem;
@@ -551,9 +552,10 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   }
   .caveats {
     padding: 1.3rem 1.5rem 1.4rem;
-    border-radius: var(--radius-l);
+    border-radius: var(--r-card);
+    corner-shape: var(--corner);
     background: color-mix(in oklch, var(--warn) 6%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--warn) 30%, transparent);
+    box-shadow: inset 0 0 0 var(--hairline) color-mix(in oklch, var(--warn) 30%, transparent);
   }
   .caveats h2 {
     color: var(--warn);
@@ -598,8 +600,9 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   }
   .bib {
     margin-top: 1.1rem;
-    border-radius: var(--radius);
-    box-shadow: inset 0 0 0 1px var(--line);
+    border-radius: var(--r-control);
+    corner-shape: var(--corner);
+    box-shadow: var(--edge);
     background: color-mix(in oklch, var(--bg-deep) 70%, transparent);
   }
   .bib summary {
@@ -626,7 +629,7 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   }
   .bib-body {
     position: relative;
-    border-top: 1px solid var(--line);
+    border-top: var(--hairline) solid var(--line);
   }
   pre {
     padding: 1rem 1.1rem;
@@ -647,11 +650,10 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
   /* ---------- related and pager ---------- */
   .related {
     padding-top: 1.75rem;
-    border-top: 1px solid var(--line);
+    border-top: var(--hairline) solid var(--line);
   }
   .related h2 {
     margin-bottom: 0.4rem;
-    color: var(--accent);
   }
   .rel-grid {
     display: grid;
@@ -665,21 +667,39 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
     margin-top: 2.5rem;
   }
   .cell {
+    position: relative;
+    isolation: isolate;
     display: grid;
     align-content: start;
     gap: 0.4rem;
     padding: 1rem 1.2rem 1.1rem;
-    border-radius: var(--radius-l);
-    box-shadow: inset 0 0 0 1px var(--line);
+    border-radius: var(--r-card);
+    corner-shape: var(--corner);
+    background: var(--card-glass);
+    box-shadow: var(--edge), var(--edge-lit), var(--elev-1);
     text-decoration: none;
-    transition:
-      box-shadow 0.25s,
-      transform 0.35s var(--ease-out);
+    transition: translate var(--spring-dur) var(--spring);
   }
-  .cell:hover {
-    color: inherit;
-    transform: translateY(-2px);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 45%, var(--line));
+  .cell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    corner-shape: inherit;
+    box-shadow: var(--elev-3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s var(--ease-out);
+  }
+  @media (hover: hover) {
+    .cell:hover {
+      color: inherit;
+      translate: 0 -2px;
+    }
+    .cell:hover::after {
+      opacity: 1;
+    }
   }
   .cell .label {
     display: inline-flex;
@@ -696,8 +716,8 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
     line-height: 1.3;
     text-wrap: balance;
   }
-  .cell:hover .t {
-    color: var(--accent);
+  .cell .t {
+    transition: color 0.2s;
   }
   .t[data-script='han'] {
     word-break: keep-all;
@@ -735,7 +755,7 @@ const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), A
       display: grid;
       align-content: center;
       border-bottom: 0;
-      border-right: 1px solid var(--line);
+      border-right: var(--hairline) solid var(--line);
     }
     .links {
       grid-column: 2;

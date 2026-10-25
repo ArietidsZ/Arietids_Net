@@ -75,7 +75,7 @@ const year = new Date().getFullYear();
     position: relative;
     margin-top: calc(var(--section-gap) / 2);
     padding-block: 1.6rem 1.8rem;
-    border-top: 1px solid var(--line);
+    border-top: var(--hairline) solid var(--line);
     background: linear-gradient(to bottom, transparent, var(--bg-deep));
   }
   /* On the home page the footer is the ground under the contact horizon, and the contact section
@@ -118,7 +118,7 @@ const year = new Date().getFullYear();
     color: var(--text-muted);
   }
   .links a:hover {
-    color: var(--accent);
+    color: var(--text);
   }
   .links a[hidden] {
     display: none;
