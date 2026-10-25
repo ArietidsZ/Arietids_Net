@@ -1,10 +1,6 @@
 import type { APIRoute } from 'astro';
-import { getNotes } from '~/lib/content';
 import { notesFeed } from '~/lib/rss';
 
-// Builds /en/rss.xml only when there are notes to syndicate.
-export async function getStaticPaths() {
-  return (await getNotes('en')).length ? [{ params: { feed: 'rss' } }] : [];
-}
-
+// A stable subscription URL also works before the first article is published.
+export const getStaticPaths = () => [{ params: { feed: 'rss' } }];
 export const GET: APIRoute = ({ site }) => notesFeed('en', site!);

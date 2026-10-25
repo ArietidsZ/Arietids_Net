@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Personal homepage of Zhibo Zhong (Arietids). Static Astro site.",
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=22.23.4"
   },
   "scripts": {
     "dev": "astro dev",
@@ -21,9 +21,12 @@
     "fonts": "node scripts/fonts.mjs",
     "test": "node --test \"scripts/**/*.test.mjs\" \"src/**/*.test.ts\"",
     "test:e2e": "playwright test",
-    "test:public": "playwright test -c playwright.public.config.ts"
+    "test:public": "playwright test -c playwright.public.config.ts",
+    "test:blog:flow": "node scripts/test-blog-flow.mjs",
+    "post": "node scripts/blog.mjs"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "7.3.4",
     "@astrojs/mdx": "^8.1.0",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
@@ -31,6 +34,9 @@
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "astro": "^7.4.0",
+    "katex": "0.19.1",
+    "rehype-katex": "7.0.1",
+    "remark-math": "6.0.0",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
@@ -42,5 +48,8 @@
     "subset-font": "^2.9.0",
     "typescript": "^6.0.3",
     "yaml": "^2.9.1"
+  },
+  "overrides": {
+    "katex": "$katex"
   }
 }

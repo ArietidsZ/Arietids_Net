@@ -6,7 +6,7 @@
  * 700+ KB across ten files, plus 100 KB of @font-face rules in the render-blocking stylesheet.
  * The site sets a few hundred Han characters, so one subset of exactly those is ~145 KB.
  *
- *   npm run fonts            build (public and preview), then subset the font to what they set
+ *   npm run fonts            build public pages, then subset the font to what they set
  *   npm run fonts -- --check  report Chinese characters in dist/ that the subset lacks
  *
  * The subset keeps the full weight axis and the CJK spacing features (halt, chws, palt) that
@@ -29,7 +29,6 @@ const SOURCE = {
 const FONT = join(root, 'src/assets/fonts/noto-serif-sc.subset.woff2');
 const CSS = join(root, 'src/styles/noto-serif-sc.css');
 const CACHE = join(root, 'node_modules/.cache/fonts/NotoSerifSC-wght.ttf');
-const BUILDS = ['dist', 'out'];
 // Default shaping plus the CJK spacing features; drops vertical forms, ruby and alternates.
 const FEATURES = ['ccmp', 'locl', 'mark', 'mkmk', 'kern', 'liga', 'calt', 'rlig', 'rvrn', 'halt', 'chws', 'palt', 'vchw', 'vhal'];
 /** Han, CJK punctuation and full-width forms: the characters only this face can set. */
@@ -98,13 +97,12 @@ async function source() {
 }
 
 async function generate() {
-  for (const [dir, mode] of [['dist', 'public'], ['out', 'preview']]) {
-    console.log(`Building ${mode} pages to collect the characters they set…`);
-    execSync('npx astro build', { cwd: root, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, CONTENT_MODE: mode } });
-    if (!existsSync(join(root, dir))) throw new Error(`${dir}/ was not built`);
-  }
+  // Local drafts must not contribute to a font shipped with the public website.
+  console.log('Building public pages to collect the characters they set…');
+  execSync('npx astro build', { cwd: root, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, CONTENT_MODE: 'public' } });
+  if (!existsSync(join(root, 'dist'))) throw new Error('dist/ was not built');
   const { default: subsetFont } = await import('subset-font');
-  const chars = builtChars(BUILDS.map((d) => join(root, d)));
+  const chars = builtChars([join(root, 'dist')]);
   // Printable ASCII too: Latin inside a Chinese title is set in this face wherever it comes first.
   for (let cp = 0x20; cp < 0x7f; cp++) chars.add(String.fromCharCode(cp));
   const text = [...chars].filter((c) => c.codePointAt(0) >= 0x20 && !INVISIBLE.test(c)).join('');

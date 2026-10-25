@@ -8,7 +8,7 @@ import SiteFooter from '~/components/SiteFooter.astro';
 import PreviewBar from '~/components/PreviewBar.astro';
 import Cosmos from '~/components/Cosmos.astro';
 import { htmlLang, localePath, locales, ogLocale, t, tr, unlocalizedPath, type Locale } from '~/i18n';
-import { getFacts, getNotes, isPreview, isSiteReady } from '~/lib/content';
+import { getFacts, isPreview, isSiteReady } from '~/lib/content';
 import cjkDisplayFont from '~/assets/fonts/noto-serif-sc.subset.woff2?url';
 
 interface Props {
@@ -39,7 +39,8 @@ const ogImage = existsSync(ogFile) && ready && validatePublicOg(process.cwd(), o
   ? new URL('/og.png', Astro.site).href
   : undefined;
 const robots = noindex || isPreview ? 'noindex, nofollow' : undefined;
-const hasFeed = ready && (await getNotes(lang)).length > 0;
+const hasFeed = ready;
+const defaultAlternate = alternates.includes('zh') ? 'zh' : (alternates[0] ?? lang);
 
 const github = facts.get('identity.github');
 const email = facts.get('contact.email');
@@ -80,7 +81,7 @@ const jsonLd = name && {
         <link rel="alternate" hreflang={htmlLang[l]} href={new URL(localePath(l, path), Astro.site)} />
       ))
     }
-    <link rel="alternate" hreflang="x-default" href={new URL(localePath('zh', path), Astro.site)} />
+    <link rel="alternate" hreflang="x-default" href={new URL(localePath(defaultAlternate, path), Astro.site)} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Chinese pages set their largest text in this face: fetch it with the stylesheet, not after. -->
     {lang === 'zh' && <link rel="preload" href={cjkDisplayFont} as="font" type="font/woff2" crossorigin />}
@@ -89,6 +90,7 @@ const jsonLd = name && {
     <meta name="theme-color" content="#f7f3ea" media="(prefers-color-scheme: light)" />
     <meta name="color-scheme" content="dark light" />
     <meta name="generator" content={Astro.generator} />
+    <noscript><style is:inline>@view-transition { navigation: none; }</style></noscript>
 
     <meta property="og:type" content={type} />
     <meta property="og:title" content={pageTitle} />

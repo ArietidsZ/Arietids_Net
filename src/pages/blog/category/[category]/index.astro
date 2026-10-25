@@ -1,0 +1,8 @@
+---
+import NotesIndex from '~/views/NotesIndex.astro';
+import { blogCategories } from '~/lib/blog';
+
+export const getStaticPaths = () => blogCategories.map((category) => ({ params: { category }, props: { category } }));
+---
+
+<NotesIndex lang="zh" category={Astro.props.category} />

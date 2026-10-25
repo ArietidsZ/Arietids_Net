@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { getCollection, type CollectionEntry, type CollectionKey } from 'astro:content';
 import { CONTENT_MODE } from 'astro:env/server';
 import type { Locale } from '~/i18n';
+import { publicationDateReached } from '~/lib/blog';
 
 export type Visibility = 'public' | 'pending' | 'private';
 
@@ -18,11 +19,10 @@ type Entry<C extends CollectionKey> = CollectionEntry<C>;
 
 /** No notes yet is the normal state: skip the lookup, which otherwise warns once per page built. */
 function hasNotes() {
-  try {
-    return readdirSync(resolve('src/content/notes'), { recursive: true }).some((f) => /\.mdx?$/.test(String(f)));
-  } catch {
-    return false;
-  }
+  return ['src/content/notes', ...(isPreview ? ['.drafts'] : [])].some((directory) => {
+    try { return readdirSync(resolve(directory)).some((f) => /\.mdx?$/.test(f)); }
+    catch { return false; }
+  });
 }
 
 async function shown<C extends 'facts' | 'work' | 'honors' | 'timeline' | 'notes'>(
@@ -66,7 +66,8 @@ export async function getTimeline() {
 export async function getNotes(lang?: Locale) {
   return (await shown('notes'))
     .filter((n) => !lang || n.data.lang === lang)
-    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+    .filter((n) => isPreview || publicationDateReached(n.data.date))
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime() || a.id.localeCompare(b.id));
 }
 
 /** Slug shared by the zh/en versions of a note: `about-this-site.zh` → `about-this-site`. */

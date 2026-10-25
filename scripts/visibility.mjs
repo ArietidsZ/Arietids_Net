@@ -11,10 +11,11 @@
  * Keys are `collection:id` (as shown on /review) or a bare id when it is unique.
  * YAML comments and formatting are preserved.
  */
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument, isScalar, isMap, visit } from 'yaml';
+import { checkBlogSources, postFiles } from './blog.mjs';
 
 // fileURLToPath, not URL.pathname: the latter stays percent-encoded, so a checkout under a path
 // with spaces or Chinese characters was not found.
@@ -29,9 +30,10 @@ function loadYaml(collection) {
 }
 
 function noteFiles() {
-  return readdirSync(join(root, 'notes'))
-    .filter((f) => /\.mdx?$/.test(f))
-    .map((f) => ({ file: join(root, 'notes', f), id: basename(f).replace(/\.mdx?$/, '') }));
+  return [
+    ...postFiles(join(root, 'notes')),
+    ...postFiles(fileURLToPath(new URL('../.drafts/', import.meta.url)), { allowMediaDirectories: true }),
+  ].map((file) => ({ file, id: basename(file).replace(/\.mdx?$/, '') }));
 }
 
 function frontmatter(text) {
@@ -97,6 +99,12 @@ function splice(text, doc, ids, level) {
 function setVisibility(level, keys) {
   const all = entries();
   const targets = keys.map((k) => resolve(k, all));
+  // Validate the whole request before any YAML entry is changed.
+  for (const target of targets.filter((entry) => entry.collection === 'notes')) {
+    const { file } = noteFiles().find((entry) => entry.id === target.id);
+    if (level === 'public') throw new Error('Publish articles with npm run post -- publish <slug> --lang <zh|en>.');
+    if (!file.includes('/.drafts/')) throw new Error('Article source is already public. Changing visibility cannot remove Git history; remove its source and deploy to withdraw the page.');
+  }
   for (const [c, list] of Map.groupBy(targets, (t) => t.collection)) {
     if (c === 'notes') {
       for (const t of list) {
@@ -127,6 +135,8 @@ function list(filter) {
 /** YAML pitfalls that pass schema validation but silently lose text. */
 function lint() {
   const problems = [];
+  try { checkBlogSources(fileURLToPath(new URL('..', import.meta.url))); }
+  catch (error) { problems.push(error.message); }
   for (const c of YAML_COLLECTIONS) {
     const { doc, file } = loadYaml(c);
     for (const e of doc.errors) problems.push(`${file}: ${e.message.split('\n')[0]}`);

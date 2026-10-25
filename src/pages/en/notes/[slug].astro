@@ -1,8 +1,8 @@
 ---
-import NotePage from '~/views/NotePage.astro';
+import { localePath } from '~/i18n';
+import { blogPath } from '~/lib/blog';
 import { notePaths } from '~/lib/notes-routes';
 
 export const getStaticPaths = () => notePaths('en');
+return Astro.redirect(localePath('en', blogPath(Astro.params.slug!)), 301);
 ---
-
-<NotePage lang="en" {...Astro.props} />

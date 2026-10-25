@@ -4,30 +4,34 @@ import SectionHeader from '~/components/ui/SectionHeader.astro';
 import Icon from '~/components/ui/Icon.astro';
 import { formatDate, localePath, t, type Locale } from '~/i18n';
 import { noteSlug } from '~/lib/content';
+import { blogPath, categoryLabel } from '~/lib/blog';
 
 interface Props {
   lang: Locale;
   notes: CollectionEntry<'notes'>[];
   /** On the notes index: list everything and drop the "all notes" link. */
   all?: boolean;
+  /** The archive already supplies its own H1 and container. */
+  heading?: boolean;
 }
-const { lang, notes, all = false } = Astro.props;
+const { lang, notes, all = false, heading = true } = Astro.props;
 const _ = t(lang);
 ---
 
-<section id="notes" class="section container" aria-labelledby="notes-title">
-  <SectionHeader lang={lang} k="section.notes" id="notes-title">
-    {!all && <a class="all" href={localePath(lang, '/notes/')}>{_('notes.title')} <Icon name="arrow-right" size={15} /></a>}
-  </SectionHeader>
+<section id="notes" class:list={[heading && 'section container']} aria-labelledby={heading ? 'notes-title' : 'blog-title'}>
+  {heading && <SectionHeader lang={lang} k="section.notes" id="notes-title">
+    {!all && <a class="all" href={localePath(lang, '/blog/')}>{_('notes.title')} <Icon name="arrow-right" size={15} /></a>}
+  </SectionHeader>}
   <ul class="list" role="list">
     {
       (all ? notes : notes.slice(0, 3)).map((n, i) => (
         <li data-visibility={n.data.visibility} data-reveal style={`--reveal-i:${i}`}>
-          <a href={localePath(lang, `/notes/${noteSlug(n)}/`)}>
+          <a href={localePath(lang, blogPath(noteSlug(n)))}>
             <time class="mono" datetime={n.data.date.toISOString()}>
               {formatDate(n.data.date, lang, 'short')}
             </time>
             <span class="text">
+              <span class="category mono">{categoryLabel(n.data.category, lang)}</span>
               <span class="title">{n.data.title}</span>
               <span class="desc">{n.data.description}</span>
             </span>
@@ -73,6 +77,11 @@ const _ = t(lang);
     font-family: var(--font-display);
     font-size: var(--step-2);
     transition: color 0.2s;
+  }
+  .category {
+    color: var(--accent);
+    font-size: var(--step--2);
+    text-transform: none;
   }
   .desc {
     color: var(--text-muted);

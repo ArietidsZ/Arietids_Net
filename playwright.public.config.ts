@@ -6,7 +6,7 @@ const port = 4330;
 /** The artifact that ships: built with `npm run build` (public mode, all checks), then served as is. */
 export default defineConfig({
   testDir: 'tests',
-  testMatch: ['public.spec.ts', 'regressions-visual.spec.ts', 'runtime.spec.ts', 'sky-runtime.spec.ts', 'clipboard.spec.ts'],
+  testMatch: ['public.spec.ts', 'regressions-visual.spec.ts', 'runtime.spec.ts', 'sky-runtime.spec.ts', 'clipboard.spec.ts', 'blog.spec.ts'],
   timeout: 45_000,
   fullyParallel: true,
   reporter: process.env.CI ? 'github' : 'list',

@@ -1,38 +1,69 @@
 ---
 import Base from '~/layouts/Base.astro';
 import Notes from '~/components/sections/Notes.astro';
-import { t, type Locale } from '~/i18n';
+import { localePath, t, type Locale } from '~/i18n';
 import ComingSoon from '~/views/ComingSoon.astro';
 import { getNotes, isSiteReady } from '~/lib/content';
+import { blogCategories, categoryDescription, categoryLabel, categoryPath, type BlogCategory } from '~/lib/blog';
 
 interface Props {
   lang: Locale;
+  category?: BlogCategory;
 }
-const { lang } = Astro.props;
+const { lang, category } = Astro.props;
 const _ = t(lang);
-const notes = await getNotes(lang);
+const all = await getNotes(lang);
+const notes = category ? all.filter((n) => n.data.category === category) : all;
 const ready = await isSiteReady();
+const title = category ? `${categoryLabel(category, lang)}${lang === 'zh' ? '博客' : ' blog'}` : _('notes.title');
+const description = category ? categoryDescription(category, lang) : _('notes.lede');
+const feed = category
+  ? localePath(lang, `${categoryPath(category)}rss.xml`).replace(/\/$/, '')
+  : localePath(lang, '/rss.xml').replace(/\/$/, '');
+const labels = lang === 'zh'
+  ? { all: '全部', nav: '博客分类', rss: '订阅 RSS', empty: '文章尚未发布。', count: `${notes.length} 篇文章` }
+  : { all: 'All', nav: 'Blog categories', rss: 'Subscribe via RSS', empty: 'No articles published yet.', count: `${notes.length} ${notes.length === 1 ? 'article' : 'articles'}` };
 ---
 
-{
-  !ready && (
-    <Base lang={lang} bare noindex>
-      <ComingSoon lang={lang} />
-    </Base>
-  )
-}
+{!ready && <Base lang={lang} bare noindex><ComingSoon lang={lang} /></Base>}
 {ready && (
-<Base lang={lang} title={_('notes.title')} description={_('notes.lede')}>
-  <div class="page">
-    <Notes lang={lang} notes={notes} all />
-    {notes.length === 0 && <p class="container muted">{_('notes.empty')}</p>}
-  </div>
-</Base>
+  <Base lang={lang} title={title} description={description}>
+    <div class="page container">
+      <header class="intro">
+        <p class="mono eyebrow">{lang === 'zh' ? 'BLOG' : 'WRITING'}</p>
+        <h1 id="blog-title">{title}</h1>
+        <p class="lede">{description}</p>
+      </header>
+      <nav class="categories" aria-label={labels.nav}>
+        <a href={localePath(lang, '/blog/')} aria-current={!category ? 'page' : undefined}>{labels.all}</a>
+        {blogCategories.map((c) => (
+          <a href={localePath(lang, categoryPath(c))} aria-current={category === c ? 'page' : undefined}>
+            {categoryLabel(c, lang)}
+            <span class="mono count">{all.filter((n) => n.data.category === c).length}</span>
+          </a>
+        ))}
+      </nav>
+      <div class="archive-meta mono">
+        <span>{labels.count}</span>
+        <a href={feed}>{labels.rss} <span aria-hidden="true">↗</span></a>
+      </div>
+      {notes.length > 0 ? <Notes lang={lang} notes={notes} all heading={false} /> : <p class="empty">{labels.empty}</p>}
+    </div>
+  </Base>
 )}
 
 <style>
-  .page {
-    padding-top: clamp(2rem, 6vw, 4rem);
-    min-height: 60vh;
-  }
+  .page { max-width: 64rem; padding-block: clamp(3rem, 8vw, 6rem); min-height: 72vh; }
+  .intro { max-width: 42rem; margin-bottom: 2.5rem; }
+  .eyebrow { color: var(--accent); margin-bottom: 1rem; }
+  h1 { font-size: var(--step-4); }
+  .lede { margin-top: 1.25rem; color: var(--text-muted); font-size: var(--step-1); }
+  .categories { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .categories a { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem; border: 1px solid var(--line); border-radius: 999px; background: var(--pill-glass); color: var(--text-muted); text-decoration: none; }
+  .categories a:hover { border-color: var(--line-strong); color: var(--text); }
+  .categories a[aria-current='page'] { border-color: var(--mark-ring); color: var(--accent); background: var(--accent-soft); }
+  .count { font-size: var(--step--2); color: var(--text-faint); }
+  .archive-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-block: 2.5rem 1rem; color: var(--text-faint); text-transform: none; }
+  .archive-meta a { color: var(--accent); text-decoration: none; }
+  .empty { padding-block: 2.5rem; color: var(--text-muted); border-block: 1px solid var(--line); }
 </style>

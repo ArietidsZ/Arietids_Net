@@ -1,0 +1,9 @@
+.drafts/
+.astro/
+.env
+.env.*
+!.env.example
+.DS_Store
+out/
+test-results/
+playwright-report/

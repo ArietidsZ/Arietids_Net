@@ -4,7 +4,7 @@ import Logo from '~/components/ui/Logo.astro';
 import ThemeToggle from '~/components/ThemeToggle.astro';
 import MotionToggle from '~/components/MotionToggle.astro';
 import { localePath, t, tr, unlocalizedPath, type Locale } from '~/i18n';
-import { getFacts, getNotes } from '~/lib/content';
+import { getFacts } from '~/lib/content';
 import { availableSections } from '~/lib/sections';
 
 interface Props {
@@ -31,8 +31,7 @@ const links = available
       .filter((l) => available[l.id])
       .map((l) => ({ ...l, label: _(l.key) }))
   : [];
-const notes = await getNotes(lang);
-const notesHref = notes.length ? localePath(lang, '/notes/') : undefined;
+const notesHref = ready ? localePath(lang, '/blog/') : undefined;
 
 const other = lang === 'zh' ? 'en' : 'zh';
 const __ = t(other);
@@ -60,7 +59,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
             ))}
             {notesHref && (
               <li>
-                <a href={notesHref}>{_('nav.notes')}</a>
+                <a href={notesHref} aria-current={path.startsWith('/blog') ? 'page' : undefined}>{_('nav.notes')}</a>
               </li>
             )}
           </ul>

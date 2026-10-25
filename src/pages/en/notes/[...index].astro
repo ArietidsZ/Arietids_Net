@@ -1,11 +1,6 @@
 ---
-import NotesIndex from '~/views/NotesIndex.astro';
-import { getNotes } from '~/lib/content';
+import { localePath } from '~/i18n';
 
-// The notes index exists only once there is something to list.
-export async function getStaticPaths() {
-  return (await getNotes('en')).length ? [{ params: { index: undefined } }] : [];
-}
+export const getStaticPaths = () => [{ params: { index: undefined } }];
+return Astro.redirect(localePath('en', '/blog/'), 301);
 ---
-
-<NotesIndex lang="en" />
