@@ -1,9 +1,5 @@
-import { readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { getCollection, type CollectionEntry, type CollectionKey } from 'astro:content';
 import { CONTENT_MODE } from 'astro:env/server';
-import type { Locale } from '~/i18n';
-import { publicationDateReached } from '~/lib/blog';
 
 export type Visibility = 'public' | 'pending' | 'private';
 
@@ -17,18 +13,9 @@ export function isShown(visibility: Visibility): boolean {
 
 type Entry<C extends CollectionKey> = CollectionEntry<C>;
 
-/** No notes yet is the normal state: skip the lookup, which otherwise warns once per page built. */
-function hasNotes() {
-  return ['src/content/notes', ...(isPreview ? ['.drafts'] : [])].some((directory) => {
-    try { return readdirSync(resolve(directory)).some((f) => /\.mdx?$/.test(f)); }
-    catch { return false; }
-  });
-}
-
-async function shown<C extends 'facts' | 'work' | 'honors' | 'timeline' | 'notes'>(
+async function shown<C extends 'facts' | 'work' | 'honors' | 'timeline'>(
   collection: C,
 ): Promise<Entry<C>[]> {
-  if (collection === 'notes' && !hasNotes()) return [];
   const all = (await getCollection(collection)) as Entry<C>[];
   return all.filter((e) => isShown((e.data as { visibility: Visibility }).visibility));
 }
@@ -61,18 +48,6 @@ export async function getHonors() {
 
 export async function getTimeline() {
   return (await shown('timeline')).sort((a, b) => a.data.order - b.data.order);
-}
-
-export async function getNotes(lang?: Locale) {
-  return (await shown('notes'))
-    .filter((n) => !lang || n.data.lang === lang)
-    .filter((n) => isPreview || publicationDateReached(n.data.date))
-    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime() || a.id.localeCompare(b.id));
-}
-
-/** Slug shared by the zh/en versions of a note: `about-this-site.zh` → `about-this-site`. */
-export function noteSlug(note: Entry<'notes'>): string {
-  return note.id.replace(/\.(zh|en)$/, '');
 }
 
 /** True once the owner has approved their name; until then production renders a "coming soon" page. */
@@ -112,7 +87,6 @@ export async function getReviewRows(): Promise<ReviewRow[]> {
   for (const e of await getCollection('work')) push('work', e.id, e.data, label(e.data.title));
   for (const e of await getCollection('honors')) push('honors', e.id, e.data, label(e.data.title));
   for (const e of await getCollection('timeline')) push('timeline', e.id, e.data, `${label(e.data.when)} · ${label(e.data.title)}`);
-  for (const e of hasNotes() ? await getCollection('notes') : []) push('notes', e.id, e.data, `${e.data.title} (${e.data.lang})`);
   return rows;
 }
 

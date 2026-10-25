@@ -9,7 +9,7 @@ const zh = {
   'nav.about': '关于',
   'nav.publication': '论文',
   'nav.work': '研究与项目',
-  'nav.notes': '博客',
+  'nav.blog': '博客',
   'nav.contact': '联系',
   'nav.menu': '菜单',
   'nav.close': '关闭菜单',
@@ -28,7 +28,6 @@ const zh = {
   'section.publication': '论文',
   'section.work': '研究与项目',
   'section.trajectory': '经历',
-  'section.notes': '博客',
   'section.contact': '联系',
 
   'atlas.label': '研究主题星图',
@@ -95,12 +94,6 @@ const zh = {
   'contact.copy': '复制邮箱',
   'contact.copied': '已复制',
 
-  'notes.title': '博客',
-  'notes.lede': '技术、学习与研究的记录。',
-  'notes.back': '全部文章',
-  'notes.updated': '更新于',
-  'notes.empty': '文章尚在准备中。',
-  'notes.otherLang': '英文版',
 
   'footer.top': '回到顶部',
 
@@ -131,7 +124,7 @@ const en: Record<UiKey, string> = {
   'nav.about': 'About',
   'nav.publication': 'Paper',
   'nav.work': 'Research & projects',
-  'nav.notes': 'Blog',
+  'nav.blog': 'Blog',
   'nav.contact': 'Contact',
   'nav.menu': 'Menu',
   'nav.close': 'Close menu',
@@ -150,7 +143,6 @@ const en: Record<UiKey, string> = {
   'section.publication': 'Paper',
   'section.work': 'Research & projects',
   'section.trajectory': 'Timeline',
-  'section.notes': 'Blog',
   'section.contact': 'Contact',
 
   'atlas.label': 'Map of research themes',
@@ -217,12 +209,6 @@ const en: Record<UiKey, string> = {
   'contact.copy': 'Copy address',
   'contact.copied': 'Copied',
 
-  'notes.title': 'Blog',
-  'notes.lede': 'Notes on technology, learning and research.',
-  'notes.back': 'All posts',
-  'notes.updated': 'Updated',
-  'notes.empty': 'Posts are on the way.',
-  'notes.otherLang': 'Chinese version',
 
   'footer.top': 'Back to top',
 

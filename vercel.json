@@ -1,22 +1,67 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "redirects": [
-    { "source": "/notes/:path(.*)?", "destination": "/blog/:path", "statusCode": 301 },
-    { "source": "/en/notes/:path(.*)?", "destination": "/en/blog/:path", "statusCode": 301 }
-  ],
   "headers": [
-    {
-      "source": "/_astro/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
-    },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
       ]
+    },
+    {
+      "source": "/_astro/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/blog/:path*",
+      "destination": "https://blog.arietids.net/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/notes/:path*",
+      "destination": "https://blog.arietids.net/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/rss.xml",
+      "destination": "https://blog.arietids.net/rss.xml",
+      "permanent": true
+    },
+    {
+      "source": "/en/blog/:path*",
+      "destination": "https://blog.arietids.net/en/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/en/notes/:path*",
+      "destination": "https://blog.arietids.net/en/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/en/rss.xml",
+      "destination": "https://blog.arietids.net/en/rss.xml",
+      "permanent": true
     }
   ]
 }

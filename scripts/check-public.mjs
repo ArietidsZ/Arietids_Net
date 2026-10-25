@@ -1,12 +1,10 @@
 #!/usr/bin/env node
-/** Checks the public artifact, including feed/metadata payloads and approved image sources. */
+/** Checks the public artifact, including metadata payloads and approved image sources. */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
 import { parse } from 'yaml';
 import { validatePublicOg } from './og-approval.mjs';
-import { publicationDateReached } from '../src/lib/blog.ts';
 
 const DEFAULT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const COLLECTIONS = ['facts', 'work', 'honors', 'timeline'];
@@ -78,14 +76,13 @@ function hasValue(text, value, plain = readable(text)) {
 const distinctive = (value) => value.length >= 8 || (/\p{Script=Han}/u.test(value) && value.length >= 4);
 
 function routes(entry) {
-  if (entry.collection === 'work') return [`/work/${entry.id}/`, `/en/work/${entry.id}/`];
-  const slug = entry.id.replace(/\.(zh|en)$/, '');
-  return ['blog', 'notes'].map((section) => `${entry.lang === 'en' ? '/en' : ''}/${section}/${slug}/`);
+  return [`/work/${entry.id}/`, `/en/work/${entry.id}/`];
 }
 
 function hasRoute(text, route) {
   const path = route.replace(/\/$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp('(?:^|[\\s"\'`<>=\\(])(?:https?://[^\\s/"\'`<>]+)?' + path + '(?=[/?#\\s"\'`<>)]|$)').test(text);
+  const origin = '(?:https?://[^\\s/"\'`<>]+)?';
+  return new RegExp('(?:^|[\\s"\'`<>=\\(])' + origin + path + '(?=[/?#\\s"\'`<>)]|$)').test(text);
 }
 
 // The alias is also an astronomical term in the unchanged visual copy. Check
@@ -96,46 +93,20 @@ function hasAlias(text, value) {
   return ['"', "'", '`'].some((quote) => text.includes(`${quote}${value}${quote}`));
 }
 
-export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist'), now = new Date()) {
+export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist')) {
   const problems = [];
   if (!existsSync(dist)) return { problems: ['Public output not found — run npm run build first.'], files: 0, textFiles: 0 };
   const content = join(root, 'src/content');
   const collections = Object.fromEntries(COLLECTIONS.map((c) => [c, parse(readFileSync(join(content, `${c}.yaml`), 'utf8')) ?? []]));
   const entries = COLLECTIONS.flatMap((c) => collections[c].map((e) => ({ ...e, collection: c })));
-  const draftDir = join(root, '.drafts');
-  for (const noteDir of [join(content, 'notes'), draftDir]) {
-    if (!existsSync(noteDir)) continue;
-    for (const file of walk(noteDir).filter((f) => /\.mdx?$/.test(f))) {
-      const raw = readFileSync(file, 'utf8');
-      const front = raw.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
-      const localDraft = noteDir === draftDir;
-      let data = {};
-      let rawDraft;
-      try { data = front ? parse(front[1]) : {}; }
-      catch (error) {
-        if (!localDraft) throw error;
-        // An unfinished local edit must not block the unrelated public build. Keep its raw
-        // source and body in the leak checks even when frontmatter cannot yet be parsed.
-        rawDraft = raw;
-      }
-      entries.push({ ...data, lang: data?.lang ?? basename(file).match(/\.(zh|en)\.mdx?$/)?.[1], id: relative(noteDir, file).replace(/\\/g, '/').replace(/\.mdx?$/, ''), collection: 'notes', localDraft, rawDraft, body: raw.slice(front?.[0].length ?? 0) });
-    }
-  }
-  const approvedEntry = (entry) => entry.visibility === 'public' && !entry.localDraft &&
-    (entry.collection !== 'notes' || publicationDateReached(entry.date, now));
+  const approvedEntry = (entry) => entry.visibility === 'public';
   const visibility = new Map(entries.map((e) => [`${e.collection}:${e.id}`, e.visibility ?? 'pending']));
   const approvedEntries = entries.filter(approvedEntry);
   const approved = approvedEntries.flatMap(strings);
   const approvedValue = (value) => approved.some((s) => s.includes(value));
-  const approvedRoutes = new Set(approvedEntries.filter((e) => ['work', 'notes'].includes(e.collection)).flatMap(routes));
-  const withheldRoutes = entries.filter((e) => !approvedEntry(e) && ['work', 'notes'].includes(e.collection))
+  const approvedRoutes = new Set(approvedEntries.filter((e) => e.collection === 'work').flatMap(routes));
+  const withheldRoutes = entries.filter((e) => !approvedEntry(e) && e.collection === 'work')
     .flatMap((entry) => routes(entry).filter((route) => !approvedRoutes.has(route)).map((route) => ({ route, entry })));
-  // Files under public/ are copied verbatim. A published article explicitly approves its entire
-  // blog-media/{slug}/ directory; an unknown hashed MDX import is not implicitly approved.
-  const publicPostSlugs = new Set(approvedEntries.filter((e) => e.collection === 'notes').map((e) => e.id.replace(/\.(zh|en)$/, '')));
-  const digest = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
-  const draftFiles = existsSync(draftDir) ? walk(draftDir) : [];
-  const draftDigests = new Set(draftFiles.filter((file) => statSync(file).size > 0).map(digest));
   const forbidden = [];
   for (const entry of entries) {
     if (entry.review?.length > 8) forbidden.push({ value: entry.review, key: `${entry.collection}:${entry.id} review` });
@@ -146,10 +117,6 @@ export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist'), now 
       if ((identity || distinctive(value)) && !approvedValue(value))
         forbidden.push({ value, key: `${entry.collection}:${entry.id}` });
     }
-  }
-  for (const file of draftFiles.filter((file) => TEXT_EXTENSIONS.has(extname(file).toLowerCase()) && !/\.mdx?$/.test(file))) {
-    const value = readFileSync(file, 'utf8');
-    if (distinctive(value) && !approvedValue(value)) forbidden.push({ value, key: `local draft:${relative(draftDir, file)}`, draftAsset: true });
   }
 
   const alias = collections.facts.find((f) => f.id === 'identity.alias');
@@ -170,22 +137,13 @@ export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist'), now 
   }
 
   const files = walk(dist);
-  const approvedMediaFiles = new Set();
   let textFiles = 0;
   for (const file of files) {
     const rel = relative(dist, file).split('\\').join('/');
     if (/^review(?:\/|\.|$)/.test(rel)) problems.push(`${rel}: review output in public artifact`);
-    if (rel.startsWith('blog-media/')) {
-      const slug = rel.split('/')[1];
-      const source = join(root, 'public', rel);
-      if (publicPostSlugs.has(slug) && existsSync(source) && statSync(source).isFile() && digest(file) === digest(source))
-        approvedMediaFiles.add(rel);
-      else problems.push(`${rel}: media has no published article or does not match its public source`);
-    }
-    // Copying an asset into an approved article's public package is an explicit publication
-    // decision; another draft may still reference the local copy. Other destinations stay blocked.
-    if (/(?:^|\/)\.drafts(?:\/|$)/.test(rel) || (!approvedMediaFiles.has(rel) && draftDigests.has(digest(file))))
-      problems.push(`${rel}: local draft file or asset in public artifact`);
+    if (/(?:^|\/)\.drafts(?:\/|$)/.test(rel)) problems.push(`${rel}: local-only draft directory in public artifact`);
+    if (/^(?:(?:en\/)?(?:blog|notes)(?:\/|$)|(?:en\/)?rss\.xml$|blog-media\/)/.test(rel))
+      problems.push(`${rel}: blog output belongs to the independent blog site`);
     for (const { route, entry } of withheldRoutes) {
       if (rel === `${route.slice(1)}index.html`)
         problems.push(`${rel}: route belongs to unapproved ${entry.collection}:${entry.id}`);
@@ -201,8 +159,7 @@ export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist'), now 
     });
     if (/data-visibility=["'](?:pending|private)["']/.test(text)) problems.push(`${rel}: non-public visibility marker`);
     if (text.includes('data-preview-bar')) problems.push(`${rel}: preview bar present`);
-    for (const { value, key, draftAsset } of forbidden) {
-      if (draftAsset && approvedMediaFiles.has(rel) && source === value) continue;
+    for (const { value, key } of forbidden) {
       if (hasValue(text, value, plain) || serialized.some((s) => hasValue(s.text, value, s.plain)))
         problems.push(`${rel}: contains text from ${key}`);
     }
@@ -220,7 +177,6 @@ export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist'), now 
   ];
   for (const file of files.filter((f) => IMAGE_EXTENSIONS.has(extname(f).toLowerCase()))) {
     const rel = relative(dist, file).split('\\').join('/');
-    if (approvedMediaFiles.has(rel)) continue;
     if (rel === 'favicon.svg') continue;
     if (rel === 'og.png') {
       problems.push(...validatePublicOg(root, file).map((p) => `og.png: ${p}`));

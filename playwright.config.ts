@@ -21,6 +21,7 @@ export default defineConfig({
   ],
   webServer: {
     command: `npm run build:preview && npm run preview -- --host 127.0.0.1 --port ${port} --ignore-lock`,
+    env: { SITE_URL: `http://127.0.0.1:${port}` },
     url: `http://127.0.0.1:${port}/`,
     timeout: 180_000,
     reuseExistingServer: false,

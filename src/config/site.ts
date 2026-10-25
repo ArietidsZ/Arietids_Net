@@ -10,7 +10,7 @@ export const site = {
   /** Avatar facts in display order: the first shown one is the portrait, the second its flip side. */
   portrait: { front: 'avatar.gold', back: 'avatar.blue', social: 'avatar.blue' },
   /** Homepage section order. Remove an id to hide a section; components live in src/components/sections. */
-  sections: ['about', 'publication', 'work', 'notes', 'contact'],
+  sections: ['about', 'publication', 'work', 'contact'],
 } as const;
 
 export type SectionId = (typeof site.sections)[number];

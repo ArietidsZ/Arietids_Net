@@ -18,7 +18,7 @@ const _ = t(lang);
 const facts = await getFacts();
 const brand = tr(facts.get('identity.alias')?.text, lang) || tr(facts.get('identity.name')?.text, lang) || _('site.name');
 const home = localePath(lang, '/');
-const available = ready ? await availableSections(lang) : undefined;
+const available = ready ? await availableSections() : undefined;
 const links = available
   ? (
       [
@@ -31,7 +31,7 @@ const links = available
       .filter((l) => available[l.id])
       .map((l) => ({ ...l, label: _(l.key) }))
   : [];
-const notesHref = ready ? localePath(lang, '/blog/') : undefined;
+const blogHref = ready ? new URL(localePath(lang, '/'), 'https://blog.arietids.net').href : undefined;
 
 const other = lang === 'zh' ? 'en' : 'zh';
 const __ = t(other);
@@ -47,7 +47,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
     </a>
 
     {
-      (links.length > 0 || notesHref) && (
+      (links.length > 0 || blogHref) && (
         <nav class="nav" aria-label={_('nav.label')}>
           <ul role="list">
             {links.map((l) => (
@@ -57,9 +57,9 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
                 </a>
               </li>
             ))}
-            {notesHref && (
+            {blogHref && (
               <li>
-                <a href={notesHref} aria-current={path.startsWith('/blog') ? 'page' : undefined}>{_('nav.notes')}</a>
+                <a href={blogHref}>{_('nav.blog')}</a>
               </li>
             )}
           </ul>
@@ -74,7 +74,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
       <span class="motion-slot"><MotionToggle lang={lang} /></span>
       <ThemeToggle lang={lang} />
       {
-        (links.length > 0 || notesHref) && (
+        (links.length > 0 || blogHref) && (
           <button class="menu-btn" popovertarget="site-menu" aria-label={_('nav.menu')}>
             <Icon name="menu" size={20} />
           </button>
@@ -84,7 +84,7 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
   </div>
 
   {
-    (links.length > 0 || notesHref) && (
+    (links.length > 0 || blogHref) && (
       <div id="site-menu" class="sheet" popover>
         <div class="sheet-head">
           <span class="mono faint">{_('nav.menu')}</span>
@@ -104,12 +104,12 @@ const switchHref = alternates.includes(other) ? localePath(other, path) : locale
               </a>
             </li>
           ))}
-          {notesHref && (
+          {blogHref && (
             <li style={`--i:${links.length}`}>
-              <a href={notesHref}>
-                {_('nav.notes')}
+              <a href={blogHref}>
+                {_('nav.blog')}
                 <span class="alt" lang={other === 'zh' ? 'zh-CN' : 'en'} aria-hidden="true">
-                  {__('nav.notes')}
+                  {__('nav.blog')}
                 </span>
               </a>
             </li>

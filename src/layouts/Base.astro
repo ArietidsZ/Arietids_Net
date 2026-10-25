@@ -33,13 +33,12 @@ const pageTitle = title ? `${title} · ${siteTitle}` : siteTitle;
 const pageDescription = description ?? (tr(facts.get('site.description')?.text, lang) || _('site.descriptionAnonymous'));
 
 const path = unlocalizedPath(Astro.url.pathname);
-const canonical = new URL(localePath(lang, path), Astro.site);
+const canonical = new URL(localePath(lang, path), Astro.site).href;
 const ogFile = resolve('public/og.png');
 const ogImage = existsSync(ogFile) && ready && validatePublicOg(process.cwd(), ogFile).length === 0
   ? new URL('/og.png', Astro.site).href
   : undefined;
 const robots = noindex || isPreview ? 'noindex, nofollow' : undefined;
-const hasFeed = ready;
 const defaultAlternate = alternates.includes('zh') ? 'zh' : (alternates[0] ?? lang);
 
 const github = facts.get('identity.github');
@@ -78,14 +77,13 @@ const jsonLd = name && {
     <link rel="canonical" href={canonical} />
     {
       alternates.map((l) => (
-        <link rel="alternate" hreflang={htmlLang[l]} href={new URL(localePath(l, path), Astro.site)} />
+        <link rel="alternate" hreflang={htmlLang[l]} href={new URL(localePath(l, path), Astro.site).href} />
       ))
     }
-    <link rel="alternate" hreflang="x-default" href={new URL(localePath(defaultAlternate, path), Astro.site)} />
+    <link rel="alternate" hreflang="x-default" href={new URL(localePath(defaultAlternate, path), Astro.site).href} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Chinese pages set their largest text in this face: fetch it with the stylesheet, not after. -->
     {lang === 'zh' && <link rel="preload" href={cjkDisplayFont} as="font" type="font/woff2" crossorigin />}
-    {hasFeed && <link rel="alternate" type="application/rss+xml" title={`${siteTitle} RSS`} href={localePath(lang, '/rss.xml').replace(/\/$/, '')} />}
     <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#f7f3ea" media="(prefers-color-scheme: light)" />
     <meta name="color-scheme" content="dark light" />

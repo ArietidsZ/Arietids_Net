@@ -12,10 +12,9 @@
  * YAML comments and formatting are preserved.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument, isScalar, isMap, visit } from 'yaml';
-import { checkBlogSources, postFiles } from './blog.mjs';
 
 // fileURLToPath, not URL.pathname: the latter stays percent-encoded, so a checkout under a path
 // with spaces or Chinese characters was not found.
@@ -27,18 +26,6 @@ function loadYaml(collection) {
   const file = join(root, `${collection}.yaml`);
   const text = readFileSync(file, 'utf8');
   return { file, text, doc: parseDocument(text) };
-}
-
-function noteFiles() {
-  return [
-    ...postFiles(join(root, 'notes')),
-    ...postFiles(fileURLToPath(new URL('../.drafts/', import.meta.url)), { allowMediaDirectories: true }),
-  ].map((file) => ({ file, id: basename(file).replace(/\.mdx?$/, '') }));
-}
-
-function frontmatter(text) {
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  return m ? { raw: m[1], doc: parseDocument(m[1]) } : undefined;
 }
 
 /** Every entry as { key, collection, id, visibility, title }. */
@@ -57,16 +44,6 @@ function entries() {
         title: isMap(title) ? title.get('zh') : String(title ?? item.get('list')?.items?.[0]?.get?.('zh') ?? ''),
       });
     }
-  }
-  for (const n of noteFiles()) {
-    const fm = frontmatter(readFileSync(n.file, 'utf8'));
-    out.push({
-      key: `notes:${n.id}`,
-      collection: 'notes',
-      id: n.id,
-      visibility: fm?.doc.get('visibility') ?? 'pending',
-      title: fm?.doc.get('title') ?? n.id,
-    });
   }
   return out;
 }
@@ -99,25 +76,7 @@ function splice(text, doc, ids, level) {
 function setVisibility(level, keys) {
   const all = entries();
   const targets = keys.map((k) => resolve(k, all));
-  // Validate the whole request before any YAML entry is changed.
-  for (const target of targets.filter((entry) => entry.collection === 'notes')) {
-    const { file } = noteFiles().find((entry) => entry.id === target.id);
-    if (level === 'public') throw new Error('Publish articles with npm run post -- publish <slug> --lang <zh|en>.');
-    if (!file.includes('/.drafts/')) throw new Error('Article source is already public. Changing visibility cannot remove Git history; remove its source and deploy to withdraw the page.');
-  }
   for (const [c, list] of Map.groupBy(targets, (t) => t.collection)) {
-    if (c === 'notes') {
-      for (const t of list) {
-        const { file } = noteFiles().find((f) => f.id === t.id);
-        const text = readFileSync(file, 'utf8');
-        const fm = frontmatter(text);
-        const next = /^visibility:.*$/m.test(fm.raw)
-          ? fm.raw.replace(/^visibility:.*$/m, `visibility: ${level}`)
-          : `${fm.raw}\nvisibility: ${level}`;
-        writeFileSync(file, text.replace(fm.raw, next));
-      }
-      continue;
-    }
     const { file, text, doc } = loadYaml(c);
     writeFileSync(file, splice(text, doc, list.map((t) => t.id), level));
   }
@@ -135,8 +94,6 @@ function list(filter) {
 /** YAML pitfalls that pass schema validation but silently lose text. */
 function lint() {
   const problems = [];
-  try { checkBlogSources(fileURLToPath(new URL('..', import.meta.url))); }
-  catch (error) { problems.push(error.message); }
   for (const c of YAML_COLLECTIONS) {
     const { doc, file } = loadYaml(c);
     for (const e of doc.errors) problems.push(`${file}: ${e.message.split('\n')[0]}`);

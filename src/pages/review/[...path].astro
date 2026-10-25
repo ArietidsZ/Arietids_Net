@@ -18,7 +18,6 @@ const label: Record<string, string> = {
   work: '研究、项目与写作',
   honors: '荣誉',
   timeline: '轨迹',
-  notes: '笔记',
 };
 const count = (v?: ReviewRow['visibility']) => rows.filter((r) => !v || r.visibility === v).length;
 const refs = (r: ReviewRow) => (Array.isArray(r.ref) ? r.ref.join(', ') : r.ref ?? '');
@@ -55,7 +54,7 @@ const refs = (r: ReviewRow) => (Array.isArray(r.ref) ? r.ref.join(', ') : r.ref 
       collections.map((c) => (
         <section class="group">
           <h2>
-            {label[c] ?? c} <span class="mono faint">src/content/{c === 'notes' ? 'notes/*.md' : `${c}.yaml`}</span>
+            {label[c] ?? c} <span class="mono faint">src/content/{`${c}.yaml`}</span>
           </h2>
           <div class="table" role="table" aria-label={label[c] ?? c}>
             {rows

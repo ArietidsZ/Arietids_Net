@@ -35,7 +35,6 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:blog:flow
       # Preview build (pending content shown): behaviour, layout and accessibility.
       - run: npm run test:e2e
       # Public build, exactly as deployed: the publication check, then clean pages and byte budgets.

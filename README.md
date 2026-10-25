@@ -2,7 +2,7 @@
 
 钟智博（Arietids）的个人主页，Astro 静态站点，中文在 `/`，英文在 `/en/`。
 
-主页展示已批准的个人资料与作品；技术、学习、研究博客共用一套写作与发布流程。博客框架不附带示例文章，正文由本人后续补充。
+主站展示已批准的个人资料与作品。博客是独立的 Astro 应用，位于 https://blog.arietids.net/，使用独立源码、构建、部署与内容发布流程。两站保持字体、配色、品牌和动效的一致性，通过普通链接互通。
 
 ## 运行
 
@@ -25,51 +25,31 @@ npm run fonts          # 重新生成中文显示字体子集（新增汉字后�
 npx playwright install chromium   # 首次运行；已有 Chromium 时可改用下一行的变量
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:e2e     # 预览版（含待确认内容）
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:public  # 实际部署的 dist/
-PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:blog:flow # 临时副本验证草稿、文章渲染和发布链路
 ```
 
-`tests/public.spec.ts` 从 sitemap 遍历公开路由，检查报错、HTTP/网络失败和待确认标记；核验中文字体、首屏及两面头像的字节预算、暂停动效。另有博客无脚本导航、RSS、窄屏论文图、翻转打印和主题/动效状态回归。`.github/workflows/ci.yml` 在推送与 PR 时运行类型检查、单元测试、独立博客发布链路与两套端到端测试；不自动部署。
+`tests/public.spec.ts` 从 sitemap 遍历公开路由，检查报错、HTTP/网络失败和待确认标记；核验中文字体、首屏及两面头像的字节预算、暂停动效。另有窄屏论文图、翻转打印和主题/动效状态回归。`.github/workflows/ci.yml` 在推送与 PR 时运行类型检查、单元测试与两套端到端测试；不自动部署。
 
 `tests/smoke.spec.ts` 覆盖首页各区块、主题切换、星图筛选、头像翻转、语言切换、移动端菜单和 axe 检查；`tests/visual.spec.ts` 覆盖 320/390 宽度下各路由的横向溢出、标语原文、分组筛选、详情页星图与引用、详情页和 404 在日夜两种主题下的 axe 检查。
 
 ## 内容与公开范围
 
-- 个人资料写在 `src/content/*.yaml`，每条带 `visibility`（public / pending / private）。文章使用下文的 Markdown/MDX 写作流程。生产构建只包含已公开且到发布日期的内容。
+- 个人资料写在 `src/content/*.yaml`，每条带 `visibility`（public / pending / private）。生产构建只包含已批准公开的内容。
+- `visibility` 只控制网页产物，不隐藏公开仓库里的源码；内部材料和未获准公开的个人资料留在仓库之外。
 - `npm run review` 列出待确认项，`npm run visibility -- public work:auralis facts:identity.name` 修改状态（`private`、`pending` 同理）。
 - `scripts/check-public.mjs` 在构建后检查产物，阻止未批准内容、路由、头像和主题标签进入 `dist/`。比对前会去掉标签、零宽断行并统一横线，所以排版组件拆开的文字也能查出；含汉字的条目从 4 个字起即参与比对。
 - 没有公开作品的研究主题不会以标签形式出现。星图上对应的恒星只显示天文名称（如 γ Ari）。
 
-## 博客写作
+## 两站边界
 
-技术、学习、研究三个分区共用一个 Markdown/MDX 文章集合。分类分别是 `tech`、`study`、`research`；中文入口为 `/blog/`，英文入口为 `/en/blog/`。文章采用 `/blog/<slug>/`，分类采用 `/blog/category/<category>/`。相同 slug 的 `.zh.md` 与 `.en.md` 是互相对应的两种语言；没有译文时不生成虚假的另一语言文章。
-
-Vercel 将旧 `/notes/` 路径及英文对应路径以 HTTP 301 转到博客；本地静态预览保留 HTML 跳转回退。
-
-```bash
-npm run post -- new my-first-post --category tech --lang zh
-```
-
-新文件位于 `.drafts/my-first-post.zh.md`，默认 `pending`。填写 `title`、`description` 与正文后用 `npm run dev` 本地预览。日期使用 `YYYY-MM-DD`，`updated` 不能早于 `date`，标签写在 `tags` 数组。文件名使用小写英文字母、数字和单个连字符；`category`、`index`、`rss` 是保留名。文章文件保持平铺，不按分类建立文件夹。
-
-正文可使用 Markdown、MDX、代码块、脚注及 `$...$` / `$$...$$` 数学公式。草稿素材可以存放在 `.drafts/assets/`；仅把确认可公开的媒体复制到 `public/blog-media/<slug>/`，正文使用 `/blog-media/<slug>/文件名`。该目录内全部文件都视为同一篇文章的公开素材；不要把内部研究图片或尚未公开的另一语言素材放进去。
-
-确认整篇文章和关联媒体都可公开后执行：
-
-```bash
-npm run post -- publish my-first-post --lang zh
-npm run check
-npm run build
-```
-
-发布命令会将草稿移至 `src/content/notes/`、改为 `public`，并去掉本地审阅字段；不会替你提交 Git 或部署。检查差异后再提交源码、部署网站。若新增了显示字体中的汉字，运行 `npm run fonts` 后重新构建。新建空模板、缺少正文、日期无效或目标文件已存在时会拒绝发布。
-
-`.drafts/` 被 Git 与 Vercel 上传忽略，Astro 只在本地预览时加载草稿；生产检查会比对本地草稿以防内容误入产物。**`visibility` 只控制网站显示，不会隐藏公开 GitHub 仓库中的源码。** 因此 `src/content/notes/` 只允许完整、已确认公开的文章，内部研究与未发表文章留在 `.drafts/` 或仓库之外。删除网页也不会抹除已经公开的 Git 历史。
-
-公开文章的 `date` 晚于上海当天时，不生成网页和订阅条目；日期到达后仍需重新构建并部署。将未来日期的文章放进公开源码意味着源码已公开，它不是保密的定时发布功能。
+- 主站：`https://arietids.net/`，中文 `/`、英文 `/en/`，只包含个人资料和作品。
+- 博客：`https://blog.arietids.net/`，中文 `/`、英文 `/en/`，技术、学习、研究三个分类，文章在博客项目内管理。
+- 每个站点有独立的依赖锁文件、Vercel 项目和生产发布。主站构建不读取博客源码，也不需要博客服务可用。
+- 主站旧 `/blog/`、`/notes/`、`/rss.xml` 及其英文路径由 Vercel 永久跳转到博客站。主站的站点地图仅列出主站页面。
+- 本地开发使用各自的根路径，无域名分流、反向代理或共享运行服务。主题和动效偏好由每个站点独立保存，首次访问跟随系统偏好。
 
 ## 视觉系统
 
-整站是同一片天空：首屏的星盘就是流星雨的辐射点，向下经过关于、论文、星图，最后在联系区落到地平线。
+主站保留原有星盘、流星、关于、论文、星图和联系区视觉。
 
 | 位置 | 文件 | 说明 |
 | --- | --- | --- |
@@ -88,7 +68,7 @@ npm run build
 
 标题用的 Noto Serif SC 不再整套加载，而是只保留站点实际用到的字（约 500 字，单个文件约 150 KB，中文页预加载）。`npm run build` 会检查构建产物里的汉字是否都在子集内；不在时给出提示，这些字会先用系统宋体显示。新增或修改中文内容后运行 `npm run fonts`（首次会下载 25 MB 原字体到 `node_modules/.cache`），提交生成的 `src/assets/fonts/noto-serif-sc.subset.woff2` 和 `src/styles/noto-serif-sc.css`。
 
-检查会读取 WOFF2 的实际字符映射，损坏字体或不实 CSS 覆盖声明会阻止构建。生成时只采集公开页面，草稿字形不会进入公开字体；本地草稿缺少的标题字使用系统字体。字体许可随网站发布于 `/fonts/OFL.txt`。
+检查会读取 WOFF2 的实际字符映射，损坏字体或不实 CSS 覆盖声明会阻止构建。生成时只采集主站公开页面。字体许可随网站发布于 `/fonts/OFL.txt`。
 
 ## 性能说明
 

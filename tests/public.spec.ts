@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
  * load: every route renders with no failed request or script error, nothing pending leaks into the
  * DOM, the subset display font covers the page, and the home page stays inside its byte budget.
  */
-const paths = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
+const locations = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).href);
 
 /** Transfer budgets for a first visit to the home page, in KB (woff2 and images as sent; text as decoded). */
 const BUDGET = { font: 400, image: { desktop: 200, mobile: 160 }, bothImages: { desktop: 220, mobile: 300 }, css: 80, js: 60 };
@@ -23,26 +23,27 @@ function watch(page: Page) {
   return problems;
 }
 
-test('every published route and the 404 page render cleanly', async ({ page, request }) => {
+test('every published route and the 404 page render cleanly', async ({ page, request, baseURL }) => {
   test.setTimeout(120_000);
   const index = await request.get('/sitemap-index.xml');
   expect(index.ok()).toBe(true);
-  const maps = paths(await index.text());
+  const maps = locations(await index.text());
   expect(maps.length).toBeGreaterThan(0);
   const routes = new Set<string>();
   for (const path of maps) {
     const sitemap = await request.get(path);
     expect(sitemap.ok()).toBe(true);
-    for (const route of paths(await sitemap.text())) routes.add(route);
+    for (const route of locations(await sitemap.text())) routes.add(route);
   }
-  expect(routes.has('/')).toBe(true);
-  expect(routes.has('/en/')).toBe(true);
-  routes.add('/missing-page/');
+  expect(routes.has(new URL('/', baseURL).href)).toBe(true);
+  expect(routes.has(new URL('/en/', baseURL).href)).toBe(true);
+  const missingPage = new URL('/missing-page/', baseURL).href;
+  routes.add(missingPage);
   const problems = watch(page);
   for (const route of routes) {
     await test.step(route, async () => {
       const response = await page.goto(route, { waitUntil: 'networkidle' });
-      expect(response?.status()).toBe(route === '/missing-page/' ? 404 : 200);
+      expect(response?.status()).toBe(route === missingPage ? 404 : 200);
       await expect(page.locator('h1').first()).toBeVisible();
       await expect(page.locator('[data-visibility="pending"], [data-visibility="private"], [data-preview-bar]')).toHaveCount(0);
       expect(problems).toEqual([]);
@@ -116,4 +117,16 @@ test('the sky and the loops rest when motion is paused', async ({ page, isMobile
   expect(animated).toEqual([]);
   const running = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations === Infinity).length);
   expect(running).toBe(0);
+});
+
+// Site identity and navigation stay local; the blog is an ordinary external destination.
+test('main site links to the independent blog without embedding its navigation', async ({ page }) => {
+  for (const [path, destination] of [['/', 'https://blog.arietids.net/'], ['/en/', 'https://blog.arietids.net/en/']]) {
+    await page.goto(path, { waitUntil: 'networkidle' });
+    await expect(page.locator('.brand')).toHaveAttribute('href', path);
+    await expect(page.locator('.nav a').filter({ hasText: /^(博客|Blog)$/ })).toHaveAttribute('href', destination);
+    await expect(page.locator('.sheet a').filter({ hasText: /^(博客|Blog)/ })).toHaveAttribute('href', destination);
+    await expect(page.locator('link[type="application/rss+xml"]')).toHaveCount(0);
+    await expect(page.locator('a[href^="/blog/"], a[href^="/en/blog/"], [data-category-filter]')).toHaveCount(0);
+  }
 });
