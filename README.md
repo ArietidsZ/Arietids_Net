@@ -27,7 +27,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:e2e     # 预览�
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium npm run test:public  # 实际部署的 dist/
 ```
 
-`tests/public.spec.ts` 从 sitemap 遍历公开路由，检查报错、HTTP/网络失败和待确认标记；核验中文字体、首屏及两面头像的字节预算、暂停动效。另有窄屏论文图、翻转打印和主题/动效状态回归。`.github/workflows/ci.yml` 在推送与 PR 时运行类型检查、单元测试与两套端到端测试；不自动部署。
+`tests/public.spec.ts` 从 sitemap 遍历公开路由，检查报错、HTTP/网络失败和待确认标记；核验中文字体、首屏及两面头像的字节预算、暂停动效。另有窄屏论文图、翻转打印和主题/动效状态回归。`.github/workflows/ci.yml` 在推送与 PR 时运行类型检查、单元测试与两套端到端测试。Vercel 原生 Git 集成绑定 `Arietids_Net`：分支生成预览，`main` 构建生产版本；生产域名等待 GitHub `check` 检查通过后才切换，不在 GitHub Actions 中另建部署流程。
 
 `tests/smoke.spec.ts` 覆盖首页各区块、主题切换、星图筛选、头像翻转、语言切换、移动端菜单和 axe 检查；`tests/visual.spec.ts` 覆盖 320/390 宽度下各路由的横向溢出、标语原文、分组筛选、详情页星图与引用、详情页和 404 在日夜两种主题下的 axe 检查。
 
