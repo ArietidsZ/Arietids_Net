@@ -154,6 +154,7 @@ try {
     await headingLink.click();
     assert.equal(decodeURIComponent(new URL(page.url()).hash), anchor);
     await page.locator('header .lang').click();
+    await page.waitForLoadState('networkidle');
     assert.equal(new URL(page.url()).pathname, '/en/blog/framework-check/');
     await page.goto(`${base}/en/blog/framework-only-en/`, { waitUntil: 'networkidle' });
     const alternates = await page.locator('head link[hreflang]').evaluateAll(links => links.map(link => [link.getAttribute('hreflang'), link.getAttribute('href')]));
