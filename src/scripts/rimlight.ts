@@ -3,12 +3,12 @@
  * turns to face it, and turns back to its resting angle when the pointer leaves.
  *
  * The turning light is `.rim-glint` (added on first hover), which takes over from the static rim
- * drawn by `.rim::after`: a ring mask over a gradient square that only rotates. Rotation is a
- * compositor transition, so following the pointer restyles one leaf element and repaints nothing;
+ * drawn by `.rim::after`: a ring mask over a gradient square that only rotates. Rotation uses a
+ * compositor-friendly transition; pointer updates still need geometry reads and style writes;
  * the angle is written at most once a frame, only while the pointer is over a plate, and always the
  * short way round.
  */
-import { isStill } from '~/scripts/motion';
+import { isStill, onMotionChange } from '~/scripts/motion';
 
 const fine = matchMedia('(hover: hover) and (pointer: fine)');
 /** Each plate's resting angle (from its stylesheet) and the last angle written to its glint. */
@@ -62,7 +62,7 @@ document.addEventListener(
     y = e.clientY;
     raf ||= requestAnimationFrame(() => {
       raf = 0;
-      if (!lit) return;
+      if (!lit || isStill() || !fine.matches) return rest();
       if (!resting.has(lit)) resting.set(lit, parseFloat(getComputedStyle(lit).getPropertyValue('--rim-angle')) || 135);
       const r = lit.getBoundingClientRect();
       // The gradient starts bright on the side opposite its angle: point it away from the pointer.
@@ -77,3 +77,12 @@ document.addEventListener(
   { passive: true },
 );
 document.documentElement.addEventListener('pointerleave', rest);
+
+function syncMotion() {
+  if (!isStill() && fine.matches) return;
+  cancelAnimationFrame(raf);
+  raf = 0;
+  rest();
+}
+onMotionChange(syncMotion);
+fine.addEventListener('change', syncMotion);

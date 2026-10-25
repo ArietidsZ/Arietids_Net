@@ -370,7 +370,7 @@
   /* A hairline border that catches light at two corners, for "plate" surfaces. Under a fine
      pointer a second rim (.rim-glint, scripts/rimlight.ts) takes over and turns its bright corner
      to face the pointer. The glint is a masked ring holding a gradient square that only rotates,
-     so the turn is a compositor transition: nothing is restyled or repainted while it runs. */
+     so its interpolation can run on the compositor between pointer-driven style updates. */
   .rim {
     position: relative;
   }
@@ -423,6 +423,13 @@
   .rim[data-rim-live] > .rim-glint > * {
     will-change: rotate;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rim::after, .rim > .rim-glint, .rim-glint > * { transition: none; }
+  }
+  :root[data-motion='off'] .rim::after,
+  :root[data-motion='off'] .rim > .rim-glint,
+  :root[data-motion='off'] .rim-glint > * { transition: none; }
 
   /* The animated sky (scripts/sky.ts): a stack of layers in one masked box that fills its section.
      A page may set --sky-fade, where the sky starts to fade out toward the bottom; the script sets

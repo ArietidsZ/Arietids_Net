@@ -6,7 +6,7 @@ const port = 4330;
 /** Checks the independently built public homepage with local URLs. */
 export default defineConfig({
   testDir: 'tests',
-  testMatch: ['public.spec.ts', 'regressions-visual.spec.ts', 'runtime.spec.ts', 'sky-runtime.spec.ts', 'clipboard.spec.ts'],
+  testMatch: ['refinement.spec.ts', 'public.spec.ts', 'regressions-visual.spec.ts', 'runtime.spec.ts', 'sky-runtime.spec.ts', 'clipboard.spec.ts'],
   timeout: 45_000,
   fullyParallel: true,
   reporter: process.env.CI ? 'github' : 'list',

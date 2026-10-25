@@ -94,4 +94,12 @@ const _ = t(Astro.props.lang);
     scale: 1;
     color: var(--accent);
   }
+  @media (prefers-reduced-motion: reduce) {
+    .motion-toggle { transition: background-color 0.2s, color 0.2s; }
+    .motion-toggle:active { scale: none; }
+    .face { transition: opacity 0.2s; }
+  }
+  :global(:root[data-motion='off']) .motion-toggle { transition: background-color 0.2s, color 0.2s; }
+  :global(:root[data-motion='off']) .motion-toggle:active { scale: none; }
+  :global(:root[data-motion='off']) .face { transition: opacity 0.2s; }
 </style>

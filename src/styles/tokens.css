@@ -101,7 +101,7 @@
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
-    /* Edges. A hairline is one device pixel: 1px on standard screens, 0.5px on Retina (below). */
+    /* Edges. Hairlines use 1px on standard screens and 0.5px on high-density screens. */
     --hairline: 1px;
     /* Light falls from above: a lit top edge and a hairline all round, for raised surfaces. */
     --edge: inset 0 0 0 var(--hairline) var(--line);
@@ -146,21 +146,6 @@
     --track-caps: 0.1em;
   }
 
-  /* Retina: separators drop to one device pixel, a touch stronger so they read the same. */
-  @media (min-resolution: 2dppx) {
-    :root {
-      --hairline: 0.5px;
-    }
-    :root:not([data-theme='day']) {
-      --line: oklch(0.92 0.02 260 / 0.13);
-      --line-strong: oklch(0.92 0.02 260 / 0.24);
-    }
-    :root[data-theme='day'] {
-      --line: oklch(0.3 0.04 266 / 0.16);
-      --line-strong: oklch(0.3 0.04 266 / 0.27);
-    }
-  }
-
   @supports (transition-timing-function: linear(0, 1)) {
     :root {
       --spring: linear(0, 0.067, 0.205, 0.358, 0.5, 0.62, 0.716, 0.791, 0.848, 0.891, 0.922, 0.944, 0.961, 0.972, 0.981, 0.987, 0.991, 0.994, 0.996, 0.997, 0.998, 0.999, 1);
@@ -174,20 +159,6 @@
     :root {
       --corner: superellipse(1.6);
       --corner-scale: 1.32;
-    }
-  }
-
-  /* Wide-gamut screens get a richer gilt; sRGB screens keep the values above. */
-  @media (color-gamut: p3) {
-    :root:not([data-theme='day']) {
-      --accent: oklch(0.84 0.13 83);
-      --accent-fill: oklch(0.85 0.135 82);
-      --accent-fill-hi: oklch(0.93 0.1 90);
-    }
-    :root[data-theme='day'] {
-      --accent: oklch(0.5 0.135 60);
-      --accent-fill: oklch(0.79 0.15 79);
-      --mark-core: oklch(0.63 0.165 64);
     }
   }
 
@@ -263,5 +234,34 @@
       0 1px 2px oklch(var(--shade) / 0.06), 0 8px 18px -6px oklch(var(--shade) / 0.1),
       0 32px 64px -20px oklch(var(--shade) / 0.22);
     --material: color-mix(in oklch, var(--bg) 74%, transparent);
+  }
+
+  /* High-density screens: half-pixel separators with stronger color to retain clarity. */
+  @media (min-resolution: 2dppx) {
+    :root {
+      --hairline: 0.5px;
+    }
+    :root:not([data-theme='day']) {
+      --line: oklch(0.92 0.02 260 / 0.13);
+      --line-strong: oklch(0.92 0.02 260 / 0.24);
+    }
+    :root[data-theme='day'] {
+      --line: oklch(0.3 0.04 266 / 0.16);
+      --line-strong: oklch(0.3 0.04 266 / 0.27);
+    }
+  }
+
+  /* Wide-gamut screens get a richer gilt; sRGB screens keep the values above. */
+  @media (color-gamut: p3) {
+    :root:not([data-theme='day']) {
+      --accent: oklch(0.84 0.13 83);
+      --accent-fill: oklch(0.85 0.135 82);
+      --accent-fill-hi: oklch(0.93 0.1 90);
+    }
+    :root[data-theme='day'] {
+      --accent: oklch(0.5 0.135 60);
+      --accent-fill: oklch(0.79 0.15 79);
+      --mark-core: oklch(0.63 0.165 64);
+    }
   }
 }

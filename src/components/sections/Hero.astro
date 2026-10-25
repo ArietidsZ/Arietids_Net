@@ -356,26 +356,35 @@ const parts = lang === 'zh' ? [...primary] : primary.split(' ');
       translate: 100% 0;
     }
   }
-  /* As the page moves on, the hero recedes: the instrument dims and shrinks about its own centre
-     (so the radiant and the day scope stay on it), the copy lifts away. One scroll-linked
-     animation each, run by the compositor; longhands, as for the header's progress line. */
+  /* Keep the instrument's retreat. Copy leaves independently, only after its final controls
+     reach the fixed header, so a tall/mobile hero remains readable throughout the viewport. */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
-      .visual > :global(.portrait),
-      .copy {
+      .visual > :global(.portrait) {
+        animation-name: recede;
+        animation-duration: 1ms;
         animation-timing-function: linear;
         animation-fill-mode: both;
         animation-timeline: scroll(root);
         animation-range-start: 0px;
         animation-range-end: 80svh;
       }
-      .visual > :global(.portrait) {
-        animation-name: recede;
+      :global(:root[data-motion='off']) .visual > :global(.portrait) {
+        animation-name: none;
       }
+    }
+  }
+  @supports (animation-timeline: view()) and (animation-range-start: exit calc(100% - 1px)) {
+    @media (prefers-reduced-motion: no-preference) {
       .copy {
         animation-name: lift;
+        animation-duration: 1ms;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view(block 0px);
+        animation-range-start: exit calc(100% - var(--header-h));
+        animation-range-end: exit 100%;
       }
-      :global(:root[data-motion='off']) .visual > :global(.portrait),
       :global(:root[data-motion='off']) .copy {
         animation-name: none;
       }

@@ -123,8 +123,11 @@ const _ = t(Astro.props.lang);
     color: var(--accent);
   }
   @media (prefers-reduced-motion: reduce) {
-    .face {
-      transition: opacity 0.2s;
-    }
+    .theme-toggle { transition: background-color 0.2s, color 0.2s; }
+    .theme-toggle:active { scale: none; }
+    .face { transition: opacity 0.2s; }
   }
+  :global(:root[data-motion='off']) .theme-toggle { transition: background-color 0.2s, color 0.2s; }
+  :global(:root[data-motion='off']) .theme-toggle:active { scale: none; }
+  :global(:root[data-motion='off']) .face { transition: opacity 0.2s; }
 </style>
