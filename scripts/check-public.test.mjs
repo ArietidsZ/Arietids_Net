@@ -102,6 +102,35 @@ test('the private note template has no public route or payload', (t) => {
   assert.ok(f.problems().some((p) => p.includes('unapproved notes:template.zh')));
 });
 
+for (const body of ['<section />', '\u200b'.repeat(10)]) {
+  test(`a private draft without visible text does not match every page (${JSON.stringify(body)})`, (t) => {
+    const f = fixture(t);
+    f.write('src/content/notes/draft.zh.mdx', `---\ntitle: Private draft\nvisibility: private\nlang: zh\n---\n${body}\n`);
+    assert.deepEqual(f.problems(), []);
+    // The source must still be caught if a debug payload actually exposes it.
+    f.write('dist/debug.txt', `${body}\n`);
+    assert.ok(f.problems().some((p) => p.includes('debug.txt: contains text from notes:draft.zh')));
+  });
+}
+
+test('a JSON payload cannot expose a private multiline note body through escaped controls', (t) => {
+  const body = 'Internal alpha plan.\nInternal beta details.\tPrivate continuation.\r\n';
+  const f = fixture(t);
+  f.write('src/content/notes/draft.zh.mdx', `---\ntitle: Private draft\nvisibility: private\nlang: zh\n---\n${body}`);
+  assert.deepEqual(f.problems(), []);
+  f.write('dist/data.json', JSON.stringify({ payload: [{ body }] }));
+  assert.ok(f.problems().some((p) => p.includes('data.json: contains text from notes:draft.zh')));
+});
+
+test('JSON decoding does not join unrelated values or reinterpret literal HTML backslashes', (t) => {
+  const f = fixture(t, { work: [{ id: 'hidden', visibility: 'private', title: 'Confidential alpha beta' }] });
+  f.write('dist/data.json', JSON.stringify({ first: 'Confidential alpha', second: '\nbeta' }));
+  f.write('dist/index.html', '<pre>Confidential alpha\\nbeta</pre>');
+  assert.deepEqual(f.problems(), []);
+  f.write('dist/data.json', JSON.stringify({ title: 'Confidential alpha\nbeta' }));
+  assert.ok(f.problems().some((p) => p.includes('data.json: contains text from work:hidden')));
+});
+
 test('an approved email does not approve a personal contact invitation', (t) => {
   const f = fixture(t, { facts: [
     { id: 'contact.email', visibility: 'public', text: 'person@example.test' },
@@ -113,4 +142,23 @@ test('an approved email does not approve a personal contact invitation', (t) => 
   assert.ok(f.problems().some((p) => p.includes('unapproved contact invitation')));
   f.write('dist/index.html', '<p>Happy to hear from you about research or collaboration.</p>');
   assert.ok(f.problems().some((p) => p.includes('facts:about.open')));
+});
+
+for (const [how, html] of [
+  ['zero-width breaks', '<h3>A private\u200b research\u200b direction</h3>'],
+  ['clause spans', '<p><span class="clause">A private research</span> <span class="clause">direction</span></p>'],
+  ['an en-dash range', '<p>Pending project 2023–2024</p>'],
+]) test(`finds unapproved text the typesetting split up (${how})`, (t) => {
+  const f = fixture(t, { work: [
+    { id: 'hidden-a', visibility: 'pending', themes: [], title: 'A private research direction' },
+    { id: 'hidden-b', visibility: 'pending', themes: [], title: 'Pending project 2023-2024' },
+  ] });
+  f.write('dist/index.html', html);
+  assert.ok(f.problems().some((p) => p.includes('contains text from work:hidden')), how);
+});
+
+test('short Chinese phrases are still distinctive', (t) => {
+  const f = fixture(t, { facts: [{ id: 'honor.pending', visibility: 'pending', text: '致远荣誉奖学金' }] });
+  f.write('dist/index.html', '<li>致远荣誉<span>奖学金</span></li>');
+  assert.ok(f.problems().some((p) => p.includes('facts:honor.pending')));
 });

@@ -24,7 +24,7 @@ const secondary = work ? chart.stars.filter((s) => s.theme && work.secondary.inc
 
 {
   work && star && (
-    <svg class="plate" viewBox={`${x0} ${y0} ${W} ${H}`} role="img" aria-label={`${star.theme!.label} · ${star.bayer}`} data-plate>
+    <svg class="plate" viewBox={`${x0} ${y0} ${W} ${H}`} role="img" aria-label={`${star.theme!.label} · ${star.bayer}`} data-plate data-loops>
       <g class="grat">
         {chart.graticule.map((g) => (
           <path d={g.d} class={g.kind} vector-effect="non-scaling-stroke" />

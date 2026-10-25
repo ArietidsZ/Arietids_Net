@@ -40,6 +40,11 @@
     --rim-hi: oklch(0.84 0.115 83 / 0.55);
     --rim-lo: oklch(0.92 0.02 260 / 0.08);
     --card: oklch(0.2 0.032 266 / 0.6);
+    /* Frosted surfaces without backdrop-filter (which re-blurs every frame while the sky moves):
+       the tone --card / --surface would have over the page, nearly opaque, so the dust behind only
+       glimmers through. */
+    --card-glass: color-mix(in srgb, color-mix(in srgb, oklch(0.2 0.032 266) 60%, var(--bg)) 88%, transparent);
+    --pill-glass: color-mix(in srgb, color-mix(in srgb, oklch(0.2 0.032 266) 45%, var(--bg)) 80%, transparent);
     /* Shade along a plate's top edge, as if it sat slightly below the page. */
     --plate-inset: oklch(0 0 0 / 0.5);
 
@@ -133,6 +138,8 @@
     --rim-hi: oklch(0.6 0.13 70 / 0.55);
     --rim-lo: oklch(0.3 0.04 266 / 0.1);
     --card: oklch(0.995 0.005 85 / 0.72);
+    --card-glass: color-mix(in srgb, color-mix(in srgb, oklch(0.995 0.005 85) 72%, var(--bg)) 90%, transparent);
+    --pill-glass: color-mix(in srgb, color-mix(in srgb, oklch(0.995 0.005 85) 50%, var(--bg)) 82%, transparent);
     --plate-inset: oklch(0.6 0.09 70 / 0.1);
 
     --dust: oklch(0.32 0.05 266);

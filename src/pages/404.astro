@@ -16,7 +16,7 @@ const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
 
 <Base lang="zh" title="404" noindex alternates={['zh']} bare={!ready}>
   <section class="nf">
-    <canvas class="sky" data-sky aria-hidden="true"></canvas>
+    <div class="sky" data-sky aria-hidden="true"></div>
     <div class="container inner">
       <div class="ring" data-anchor aria-hidden="true">
         <svg viewBox="0 0 400 400" data-loop>
@@ -49,10 +49,10 @@ const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
 
 <script>
   import { mountSky } from '~/scripts/sky';
-  const canvas = document.querySelector<HTMLCanvasElement>('[data-sky]');
-  if (canvas) {
-    const root = canvas.closest('.nf');
-    mountSky(canvas, {
+  const host = document.querySelector<HTMLElement>('[data-sky]');
+  if (host) {
+    const root = host.closest('.nf');
+    mountSky(host, {
       radiant: { x: 0.5, y: 0.35 },
       anchor: root?.querySelector<HTMLElement>('[data-anchor]'),
       shield: [...(root?.querySelectorAll<HTMLElement>('h1, .body, .links') ?? [])],
@@ -77,12 +77,8 @@ const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
     background: linear-gradient(to bottom, var(--bg-deep), transparent);
   }
   .sky {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
     z-index: -1;
-    mask-image: linear-gradient(to bottom, #000 65%, transparent);
+    --sky-fade: 65%;
   }
   .inner {
     display: grid;

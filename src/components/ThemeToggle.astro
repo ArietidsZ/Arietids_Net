@@ -14,6 +14,8 @@ const _ = t(Astro.props.lang);
 </button>
 
 <script>
+  import { isStill } from '~/scripts/motion';
+
   const root = document.documentElement;
 
   function apply(next: 'day' | 'night') {
@@ -27,8 +29,7 @@ const _ = t(Astro.props.lang);
   document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = root.dataset.theme === 'day' ? 'night' : 'day';
-      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!document.startViewTransition || reduce) return apply(next);
+      if (!document.startViewTransition || isStill()) return apply(next);
 
       // Reveal the new theme as a circle growing out of the button: dawn, or dusk.
       const r = btn.getBoundingClientRect();

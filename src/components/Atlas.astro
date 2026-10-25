@@ -34,10 +34,16 @@ const themeStar = new Map(lit.map((s) => [s.theme!.id, s]));
 // Apparent size from magnitude: Hamal (2.0) is the largest; 5.6 is a speck.
 const size = (mag: number) => Math.max(1.6, 9.5 - mag * 1.45);
 const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer + (s.name ? ` · ${s.name}` : '');
+// Rays around the radiant, in chart units. They are HTML rather than SVG so their flicker runs on
+// the compositor; knockout() masks them under labels like the SVG lines.
+const rays = Array.from({ length: 12 }, (_, i) => {
+  const r1 = 24 + (i % 3) * 5;
+  return { a: (i / 12) * Math.PI * 2 + 0.2, r1, len: 14 + (i % 2) * 10, d: ((i * 7) % 12) * 0.45 };
+});
 ---
 
-<figure class="atlas" data-atlas aria-label={_('atlas.label')}>
-  <div class="chart rim" style={`aspect-ratio:${w}/${h}`} data-chart>
+<figure class="atlas" data-atlas data-loops aria-label={_('atlas.label')}>
+  <div class="chart rim" style={`aspect-ratio:${w}/${h};--u:calc(100cqw / ${w})`} data-chart>
     <svg class="lines" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <defs>
         <radialGradient id="atlas-vignette" cx="50%" cy="45%" r="70%">
@@ -102,27 +108,13 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
       <g class="radiant" transform={`translate(${chart.radiant.x} ${chart.radiant.y})`}>
         <circle r="9" class="rad-ring"></circle>
         <circle r="17" class="rad-ring dashed"></circle>
-        {
-          Array.from({ length: 12 }, (_, i) => {
-            const a = (i / 12) * Math.PI * 2 + 0.2;
-            const r1 = 24 + (i % 3) * 5;
-            const r2 = r1 + 14 + (i % 2) * 10;
-            return (
-              <line
-                x1={(Math.cos(a) * r1).toFixed(1)}
-                y1={(Math.sin(a) * r1).toFixed(1)}
-                x2={(Math.cos(a) * r2).toFixed(1)}
-                y2={(Math.sin(a) * r2).toFixed(1)}
-                class="ray"
-                style={`--d:${((i * 7) % 12) * 0.45}s`}
-                vector-effect="non-scaling-stroke"
-              />
-            );
-          })
-        }
       </g>
       </g>
     </svg>
+
+    <span class="rays" style={pct(chart.radiant)} aria-hidden="true" data-rays>
+      {rays.map((r) => <span class="ray" style={`--a:${r.a.toFixed(3)}rad;--r1:${r.r1};--len:${r.len};--d:${r.d.toFixed(2)}s`} />)}
+    </span>
 
     {/* Field and figure stars without a public theme: drawn, never interactive. */}
     {
@@ -266,6 +258,8 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
 </figure>
 
 <script>
+  import { isStill } from '~/scripts/motion';
+
   document.querySelectorAll<HTMLElement>('[data-atlas]').forEach((atlas) => {
     const tstars = [...atlas.querySelectorAll<HTMLButtonElement>('.tstar')];
     const wstars = [...atlas.querySelectorAll<HTMLElement>('.wstar')];
@@ -309,8 +303,7 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
         const r = on.getBoundingClientRect();
         const rr = rail.getBoundingClientRect();
         if (r.left < rr.left + 4 || r.right > rr.right - 40) {
-          const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off';
-          rail.scrollBy({ left: r.left - rr.left - 12, behavior: still ? 'auto' : 'smooth' });
+          rail.scrollBy({ left: r.left - rr.left - 12, behavior: isStill() ? 'auto' : 'smooth' });
         }
       }
     }
@@ -361,6 +354,7 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
     const holes = atlas.querySelector<SVGGElement>('[data-ko]');
     const texts = [...atlas.querySelectorAll<HTMLElement>('.tname .full, .tname .short, .tbayer, .bayer, .rad-label, .corner')];
     const faint = [...atlas.querySelectorAll<HTMLElement>('.fstar:not(.fig)')];
+    const rayBox = atlas.querySelector<HTMLElement>('[data-rays]');
     function knockout() {
       if (!svg || !holes) return;
       const box = svg.getBoundingClientRect();
@@ -383,6 +377,17 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
         }
       }
       holes.innerHTML = rects.join('');
+      // The rays are HTML: cut the same holes with mask layers, the full layer minus every label.
+      if (rayBox) {
+        const rb = rayBox.getBoundingClientRect();
+        const cut = boxes.filter((r) => r.right > rb.left && r.left < rb.right && r.bottom > rb.top && r.top < rb.bottom);
+        const px = (n: number) => `${n.toFixed(1)}px`;
+        rayBox.style.maskImage = ['linear-gradient(#000 0 0)', ...cut.map(() => 'linear-gradient(#000 0 0)')].join(',');
+        rayBox.style.maskSize = ['100% 100%', ...cut.map((r) => `${px(r.width + 6)} ${px(r.height + 2)}`)].join(',');
+        rayBox.style.maskPosition = ['0 0', ...cut.map((r) => `${px(r.left - rb.left - 3)} ${px(r.top - rb.top - 1)}`)].join(',');
+        rayBox.style.maskRepeat = 'no-repeat';
+        rayBox.style.maskComposite = ['subtract', ...cut.map(() => 'add')].join(',');
+      }
       // Faint field stars under a label are left out too.
       for (const f of faint) {
         const r = f.getBoundingClientRect();
@@ -418,6 +423,7 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
   /* ---------- the chart plate ---------- */
   .chart {
     position: relative;
+    container-type: inline-size;
     border-radius: var(--radius-plate);
     background:
       radial-gradient(90% 80% at 60% 35%, var(--plate-hi), transparent 70%),
@@ -490,10 +496,23 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
     stroke-dasharray: 2 4;
     stroke: color-mix(in oklch, var(--accent) 35%, transparent);
   }
+  .rays {
+    position: absolute;
+    width: calc(120 * var(--u));
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    pointer-events: none;
+  }
   .ray {
-    stroke: var(--accent);
-    stroke-width: 1;
-    stroke-linecap: round;
+    position: absolute;
+    left: 50%;
+    top: calc(50% - 0.5px);
+    width: calc(var(--len) * var(--u));
+    height: 1px;
+    border-radius: 1px;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    transform: rotate(var(--a)) translateX(calc(var(--r1) * var(--u)));
     opacity: 0.32;
   }
 
@@ -775,8 +794,7 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
     gap: 1.1rem;
     padding: 1.25rem;
     border-radius: var(--radius-plate);
-    background: var(--card);
-    backdrop-filter: blur(10px);
+    background: var(--card-glass);
     box-shadow: inset 0 0 0 1px var(--line);
     --rim-angle: 200deg;
   }
@@ -965,7 +983,6 @@ const designation = (s: { bayer: string; name?: string | undefined }) => s.bayer
       grid-template-rows: auto;
       padding: 0;
       background: none;
-      backdrop-filter: none;
       box-shadow: none;
     }
     .panel.rim::after {

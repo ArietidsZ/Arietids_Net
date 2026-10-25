@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { getCollection, type CollectionEntry, type CollectionKey } from 'astro:content';
 import { CONTENT_MODE } from 'astro:env/server';
 import type { Locale } from '~/i18n';
@@ -14,9 +16,19 @@ export function isShown(visibility: Visibility): boolean {
 
 type Entry<C extends CollectionKey> = CollectionEntry<C>;
 
+/** No notes yet is the normal state: skip the lookup, which otherwise warns once per page built. */
+function hasNotes() {
+  try {
+    return readdirSync(resolve('src/content/notes'), { recursive: true }).some((f) => /\.mdx?$/.test(String(f)));
+  } catch {
+    return false;
+  }
+}
+
 async function shown<C extends 'facts' | 'work' | 'honors' | 'timeline' | 'notes'>(
   collection: C,
 ): Promise<Entry<C>[]> {
+  if (collection === 'notes' && !hasNotes()) return [];
   const all = (await getCollection(collection)) as Entry<C>[];
   return all.filter((e) => isShown((e.data as { visibility: Visibility }).visibility));
 }
@@ -99,7 +111,7 @@ export async function getReviewRows(): Promise<ReviewRow[]> {
   for (const e of await getCollection('work')) push('work', e.id, e.data, label(e.data.title));
   for (const e of await getCollection('honors')) push('honors', e.id, e.data, label(e.data.title));
   for (const e of await getCollection('timeline')) push('timeline', e.id, e.data, `${label(e.data.when)} · ${label(e.data.title)}`);
-  for (const e of await getCollection('notes')) push('notes', e.id, e.data, `${e.data.title} (${e.data.lang})`);
+  for (const e of hasNotes() ? await getCollection('notes') : []) push('notes', e.id, e.data, `${e.data.title} (${e.data.lang})`);
   return rows;
 }
 

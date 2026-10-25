@@ -9,7 +9,7 @@ import StarPlate from '~/components/StarPlate.astro';
 import { localePath, t, tr, type Locale } from '~/i18n';
 import type { UiKey } from '~/i18n/ui';
 import { getThemes, getWork } from '~/lib/content';
-import { bibtex } from '~/lib/cite';
+import { bibtex, scholarly } from '~/lib/cite';
 import { chartFor } from '~/lib/aries';
 import { ranges, script } from '~/lib/typeset';
 
@@ -36,12 +36,21 @@ const title = tr(d.title, lang);
 // Long titles step down one size so they hold two or three good lines.
 const long = [...title].length > (script(title) === 'han' ? 14 : 30);
 const home = localePath(lang, '/');
+const scholar = scholarly(work, new URL(localePath(lang, `/work/${work.id}/`), Astro.site).href);
 ---
 
 <Base lang={lang} title={title} description={tr(d.summary, lang)} type="article">
+  {
+    scholar && (
+      <Fragment slot="head">
+        {scholar.meta.map(([name, content]) => <meta name={name} content={content} />)}
+        <script type="application/ld+json" set:html={JSON.stringify(scholar.jsonLd)} />
+      </Fragment>
+    )
+  }
   <article class="work" data-visibility={d.visibility}>
     <header class="head">
-      <canvas class="sky" data-sky aria-hidden="true"></canvas>
+      <div class="sky" data-sky aria-hidden="true"></div>
       <div class="container head-grid">
         <div class="intro">
           <a class="back label" href={`${home}#work`} data-shield>
@@ -290,10 +299,10 @@ const home = localePath(lang, '/');
   import '~/scripts/copy';
   import { mountSky } from '~/scripts/sky';
 
-  const canvas = document.querySelector<HTMLCanvasElement>('[data-sky]');
-  if (canvas) {
-    const head = canvas.closest('.head');
-    mountSky(canvas, {
+  const host = document.querySelector<HTMLElement>('[data-sky]');
+  if (host) {
+    const head = host.closest('.head');
+    mountSky(host, {
       radiant: { x: 0.8, y: 0.25 },
       anchor: head?.querySelector<HTMLElement>('[data-anchor]'),
       shield: [...(head?.querySelectorAll<HTMLElement>('[data-shield]') ?? [])],
@@ -317,12 +326,8 @@ const home = localePath(lang, '/');
       linear-gradient(to bottom, var(--bg-deep), color-mix(in oklch, var(--bg) 70%, transparent) 80%, transparent);
   }
   .sky {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
     z-index: -1;
-    mask-image: linear-gradient(to bottom, #000 60%, transparent);
+    --sky-fade: 60%;
   }
   .head-grid {
     display: grid;
@@ -409,8 +414,7 @@ const home = localePath(lang, '/');
   .card {
     display: grid;
     border-radius: var(--radius-plate);
-    background: var(--card);
-    backdrop-filter: blur(12px);
+    background: var(--card-glass);
     box-shadow:
       inset 0 0 0 1px var(--line),
       var(--shadow);

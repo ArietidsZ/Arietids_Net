@@ -6,6 +6,8 @@ const port = 4329;
 /** Smoke tests run against a preview build, so pending content is present to exercise. */
 export default defineConfig({
   testDir: 'tests',
+  // The public artifact has its own config (playwright.public.config.ts).
+  testIgnore: 'public.spec.ts',
   timeout: 30_000,
   fullyParallel: true,
   reporter: process.env.CI ? 'github' : 'list',

@@ -95,6 +95,8 @@ let index = 0;
 </section>
 
 <script>
+  import { isStill } from '~/scripts/motion';
+
   const root = document.documentElement;
   const holder = document.querySelector<HTMLElement>('[data-grid]');
   const groups = [...(holder?.querySelectorAll<HTMLElement>('[data-group]') ?? [])];
@@ -131,22 +133,28 @@ let index = 0;
   // The atlas (stars and theme list) announces the filter; the grid follows.
   document.addEventListener('work:filter', (e) => {
     const theme = (e as CustomEvent<string | null>).detail;
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (document.startViewTransition && !reduce) {
+    if (document.startViewTransition && !isStill()) {
       root.classList.add('filtering');
       const vt = document.startViewTransition(() => apply(theme));
       vt.finished.finally(() => root.classList.remove('filtering'));
     } else apply(theme);
   });
 
-  // Pointer spotlight on cards, and hover lights the card's star in the atlas.
+  // Pointer spotlight on cards (moved once per frame), and hover lights the card's star in the atlas.
   let hovered: HTMLElement | null = null;
+  let spot: { card: HTMLElement; x: number; y: number } | null = null;
+  let raf = 0;
   holder?.addEventListener('pointermove', (e) => {
     const card = (e.target as HTMLElement).closest<HTMLElement>('[data-card]');
     if (card) {
-      const r = card.getBoundingClientRect();
-      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      card.style.setProperty('--my', `${e.clientY - r.top}px`);
+      spot = { card, x: e.clientX, y: e.clientY };
+      raf ||= requestAnimationFrame(() => {
+        raf = 0;
+        if (!spot) return;
+        const r = spot.card.getBoundingClientRect();
+        spot.card.style.setProperty('--mx', `${spot.x - r.left}px`);
+        spot.card.style.setProperty('--my', `${spot.y - r.top}px`);
+      });
     }
     if (card !== hovered && e.pointerType === 'mouse') {
       hovered = card;

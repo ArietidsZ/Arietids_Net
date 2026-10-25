@@ -101,8 +101,6 @@ export type ChartWork = {
   secondary: string[];
   x: number;
   y: number;
-  /** Angle on the orbit, radians, screen coordinates (0 = right, π/2 = down). */
-  angle: number;
   label: string;
   meta: string;
   summary: string;
@@ -116,7 +114,7 @@ export type Chart = {
   figure: { x1: number; y1: number; x2: number; y2: number; lit: boolean }[];
   works: ChartWork[];
   radiant: { x: number; y: number };
-  graticule: { d: string; label?: string; lx?: number; ly?: number; kind: 'ra' | 'dec' }[];
+  graticule: { d: string; kind: 'ra' | 'dec' }[];
 };
 
 type WorkInput = {
@@ -268,7 +266,6 @@ export function layoutChart(themes: CollectionEntry<'themes'>[], items: WorkInpu
       theme: s.theme.id,
       secondary: item.themes.slice(1).filter((t) => themeStar.has(t)),
       ...p,
-      angle: best.a,
       label: item.label,
       meta: item.meta,
       summary: item.summary,
@@ -326,14 +323,12 @@ export function layoutChart(themes: CollectionEntry<'themes'>[], items: WorkInpu
   for (const ra of [15, 30, 45, 60]) {
     const pts = [];
     for (let dec = 8; dec <= 38; dec += 1) pts.push(fit(project(ra, dec)));
-    const top = fit(project(ra, 31.2));
-    graticule.push({ d: path(pts), kind: 'ra', label: `${ra / 15}h`, lx: top.x, ly: top.y });
+    graticule.push({ d: path(pts), kind: 'ra' });
   }
   for (const dec of [15, 20, 25, 30]) {
     const pts = [];
     for (let ra = 10; ra <= 66; ra += 1) pts.push(fit(project(ra, dec)));
-    const edge = fit(project(51.5, dec));
-    graticule.push({ d: path(pts), kind: 'dec', label: `+${dec}°`, lx: edge.x, ly: edge.y });
+    graticule.push({ d: path(pts), kind: 'dec' });
   }
 
   return { w: CHART_W, h, stars, figure, works, radiant, graticule };

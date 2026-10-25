@@ -2,6 +2,7 @@
 const zh = {
   'site.name': '个人主页',
   'site.descriptionAnonymous': '个人主页。',
+  'copy.failed': '复制失败',
 
   'nav.label': '主导航',
   'nav.skip': '跳到正文',
@@ -17,7 +18,6 @@ const zh = {
   'theme.toggle': '切换日夜主题',
   'motion.pause': '暂停动画',
   'lang.switch': 'English',
-  'lang.switchLabel': '英文版',
 
   'hero.cta.work': '研究与项目',
   'hero.scroll': '向下',
@@ -73,7 +73,6 @@ const zh = {
   'pub.copied': '已复制',
 
   'work.role': '我的角色',
-  'work.year': '时间',
   'work.stack': '技术',
   'work.highlights': '要点',
   'work.metrics': '数据',
@@ -81,7 +80,6 @@ const zh = {
   'work.related': '同主题的其他工作',
   'work.back': '全部研究与项目',
   'work.themes': '主题',
-  'work.more': '详情',
   'work.prev': '上一项',
   'work.next': '下一项',
   'work.github': 'GitHub',
@@ -126,6 +124,7 @@ export type UiKey = keyof typeof zh;
 const en: Record<UiKey, string> = {
   'site.name': 'Personal homepage',
   'site.descriptionAnonymous': 'Personal homepage.',
+  'copy.failed': 'Copy failed',
 
   'nav.label': 'Main',
   'nav.skip': 'Skip to content',
@@ -141,7 +140,6 @@ const en: Record<UiKey, string> = {
   'theme.toggle': 'Switch between night and day',
   'motion.pause': 'Pause animation',
   'lang.switch': '中文',
-  'lang.switchLabel': 'Chinese version',
 
   'hero.cta.work': 'Research & projects',
   'hero.scroll': 'Scroll',
@@ -197,7 +195,6 @@ const en: Record<UiKey, string> = {
   'pub.copied': 'Copied',
 
   'work.role': 'My role',
-  'work.year': 'When',
   'work.stack': 'Stack',
   'work.highlights': 'Highlights',
   'work.metrics': 'Numbers',
@@ -205,7 +202,6 @@ const en: Record<UiKey, string> = {
   'work.related': 'Related work',
   'work.back': 'All research & projects',
   'work.themes': 'Themes',
-  'work.more': 'Details',
   'work.prev': 'Previous',
   'work.next': 'Next',
   'work.github': 'GitHub',

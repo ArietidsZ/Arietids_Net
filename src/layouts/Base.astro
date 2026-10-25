@@ -9,6 +9,7 @@ import PreviewBar from '~/components/PreviewBar.astro';
 import Cosmos from '~/components/Cosmos.astro';
 import { htmlLang, localePath, locales, ogLocale, t, tr, unlocalizedPath, type Locale } from '~/i18n';
 import { getFacts, getNotes, isPreview, isSiteReady } from '~/lib/content';
+import cjkDisplayFont from '~/assets/fonts/noto-serif-sc.subset.woff2?url';
 
 interface Props {
   lang: Locale;
@@ -42,6 +43,18 @@ const hasFeed = ready && (await getNotes(lang)).length > 0;
 
 const github = facts.get('identity.github');
 const email = facts.get('contact.email');
+// Same-site links are fetched once the pointer rests on them (or on touch start), so the next page
+// and its cross-document view transition start at once. Ignored where unsupported.
+const speculation = {
+  prefetch: [
+    {
+      source: 'document',
+      where: { and: [{ href_matches: '/*' }, { not: { selector_matches: '[target=_blank], [download], [rel~=nofollow]' } }] },
+      eagerness: 'moderate',
+    },
+  ],
+};
+
 const jsonLd = name && {
   '@context': 'https://schema.org',
   '@type': 'Person',
@@ -69,6 +82,8 @@ const jsonLd = name && {
     }
     <link rel="alternate" hreflang="x-default" href={new URL(localePath('zh', path), Astro.site)} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- Chinese pages set their largest text in this face: fetch it with the stylesheet, not after. -->
+    {lang === 'zh' && <link rel="preload" href={cjkDisplayFont} as="font" type="font/woff2" crossorigin />}
     {hasFeed && <link rel="alternate" type="application/rss+xml" title={`${siteTitle} RSS`} href={localePath(lang, '/rss.xml').replace(/\/$/, '')} />}
     <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#f7f3ea" media="(prefers-color-scheme: light)" />
@@ -81,10 +96,13 @@ const jsonLd = name && {
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={siteTitle} />
     <meta property="og:locale" content={ogLocale[lang]} />
+    {alternates.filter((l) => l !== lang).map((l) => <meta property="og:locale:alternate" content={ogLocale[l]} />)}
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
 
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    <script type="speculationrules" is:inline set:html={JSON.stringify(speculation)} />
+    <slot name="head" />
 
     <!-- Returning from a work page: its title shrinks back into the matching card (see scripts/transitions.ts). -->
     <script is:inline>
@@ -113,10 +131,23 @@ const jsonLd = name && {
         if (theme !== 'day' && theme !== 'night')
           theme = matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'night';
         d.dataset.theme = theme;
+        // The browser chrome follows the page's theme, including one chosen by hand.
+        const chrome = () =>
+          document.querySelectorAll('meta[name="theme-color"]').forEach((m) => (m.content = d.dataset.theme === 'day' ? '#f7f3ea' : '#0b1020'));
+        chrome();
+        addEventListener('themechange', chrome);
+        // Paper is light: print in the day palette, then restore.
+        let screenTheme;
+        addEventListener('beforeprint', () => {
+          screenTheme = d.dataset.theme;
+          d.dataset.theme = 'day';
+          document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('is-visible'));
+        });
+        addEventListener('afterprint', () => screenTheme && (d.dataset.theme = screenTheme));
       })();
     </script>
   </head>
-  <body>
+  <body data-copy-failed-label={_('copy.failed')}>
     <a class="skip" href="#main">{_('nav.skip')}</a>
     <Cosmos />
     {isPreview && <PreviewBar lang={lang} />}
@@ -132,6 +163,8 @@ const jsonLd = name && {
 <script>
   import '~/scripts/reveal';
   import '~/scripts/transitions';
+  import '~/scripts/offscreen';
+  import '~/scripts/clipboard';
 </script>
 
 <style>

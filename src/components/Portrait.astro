@@ -23,27 +23,27 @@ const back = backFact && front ? await loadAvatar(backFact.id) : undefined;
 const ticks = Array.from({ length: 72 }, (_, i) => i * 5);
 const ringText = 'ARIETIDS · DAYTIME METEOR SHOWER · RADIANT IN ARIES · ';
 const Tag = back ? 'button' : 'div';
+// The disc is 70% of the instrument, whose size Hero.astro sets: min(15rem, 62vw) on phones,
+// clamp(15rem, 8rem + 20vw, 36rem) above 48rem. Phones at 3x take the 560w file, desktops the 420w
+// (1x) or 640w (2x).
+const sizes = '(max-width: 48rem) 168px, (min-width: 140rem) 404px, calc(14vw + 90px)';
+const widths = [280, 420, 560, 640, 840];
 ---
 
 <div class="portrait" data-astrolabe data-visibility={frontFact?.visibility}>
   <div class="instrument" data-instrument>
-    <svg class="rings" viewBox="0 0 400 400" aria-hidden="true">
-      <defs>
-        <path id="ring-path" d="M200,200 m-168,0 a168,168 0 1,1 336,0 a168,168 0 1,1 -336,0"></path>
-        <linearGradient id="gilt" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" class="g-hi"></stop>
-          <stop offset="0.45" class="g-mid"></stop>
-          <stop offset="1" class="g-lo"></stop>
-        </linearGradient>
-        <clipPath id="annulus">
-          <path
-            clip-rule="evenodd"
-            d="M200,200 m-197,0 a197,197 0 1,0 394,0 a197,197 0 1,0 -394,0 Z M200,200 m-146,0 a146,146 0 1,1 292,0 a146,146 0 1,1 -292,0 Z"
-          ></path>
-        </clipPath>
-      </defs>
-      <g class="spin">
-        <g class="ring outer" data-loop>
+    <!-- Each ring is its own <svg>, so its slow turn runs on the compositor instead of repainting the
+         whole instrument every frame. -->
+    <div class="rings" aria-hidden="true">
+      <div class="spin">
+        <svg class="ring outer" viewBox="0 0 400 400" data-loop>
+          <defs>
+            <linearGradient id="gilt" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" class="g-hi"></stop>
+              <stop offset="0.45" class="g-mid"></stop>
+              <stop offset="1" class="g-lo"></stop>
+            </linearGradient>
+          </defs>
           <circle cx="200" cy="200" r="197" class="bezel"></circle>
           <circle cx="200" cy="200" r="194" class="hairline"></circle>
           {
@@ -58,20 +58,31 @@ const Tag = back ? 'button' : 'div';
               />
             ))
           }
-        </g>
-        <g class="ring text" data-loop>
+        </svg>
+        <svg class="ring text" viewBox="0 0 400 400" data-loop>
+          <defs>
+            <path id="ring-path" d="M200,200 m-168,0 a168,168 0 1,1 336,0 a168,168 0 1,1 -336,0"></path>
+          </defs>
           <text><textPath href="#ring-path" textLength="1050">{ringText}{ringText}</textPath></text>
-        </g>
-        <g class="ring inner" data-loop>
+        </svg>
+        <svg class="ring inner" viewBox="0 0 400 400" data-loop>
+          <defs>
+            <clipPath id="annulus">
+              <path
+                clip-rule="evenodd"
+                d="M200,200 m-197,0 a197,197 0 1,0 394,0 a197,197 0 1,0 -394,0 Z M200,200 m-146,0 a146,146 0 1,1 292,0 a146,146 0 1,1 -292,0 Z"
+              ></path>
+            </clipPath>
+          </defs>
           <circle cx="200" cy="200" r="152" class="dashed"></circle>
           <!-- The rete: an eccentric ecliptic ring, as on a real astrolabe. -->
           <circle cx="200" cy="176" r="172" class="rete" clip-path="url(#annulus)"></circle>
           <path class="sparkle" d="M200 40 202.5 45.5 208 48 202.5 50.5 200 56 197.5 50.5 192 48 197.5 45.5Z" transform="rotate(38 200 200)"></path>
           <circle cx="200" cy="48" r="2.2" class="dot" transform="rotate(160 200 200)"></circle>
           <circle cx="200" cy="48" r="1.6" class="dot" transform="rotate(250 200 200)"></circle>
-        </g>
-      </g>
-    </svg>
+        </svg>
+      </div>
+    </div>
     <span class="rimlight" aria-hidden="true"></span>
 
     <Tag
@@ -81,6 +92,7 @@ const Tag = back ? 'button' : 'div';
       aria-describedby={back ? 'portrait-face' : undefined}
       aria-pressed={back ? 'false' : undefined}
       data-flip={back ? '' : undefined}
+      data-armed={back ? undefined : ''}
     >
       <span class="card">
         {back && [-2, -1, 0, 1, 2].map((z) => <span class="edge" style={`--z:${z}px`} aria-hidden="true" />)}
@@ -90,10 +102,11 @@ const Tag = back ? 'button' : 'div';
               <Picture
                 src={front}
                 alt={tr(frontFact!.text, lang)}
-                widths={[280, 420, 560, 840]}
-                sizes="(max-width: 48rem) 60vw, 360px"
-                formats={['avif', 'webp']}
-                fallbackFormat="jpg"
+                widths={widths}
+                sizes={sizes}
+                width={840}
+                formats={['avif']}
+                fallbackFormat="webp"
                 quality={82}
                 loading="eager"
                 fetchpriority="high"
@@ -111,10 +124,11 @@ const Tag = back ? 'button' : 'div';
               <Picture
                 src={back}
                 alt={tr(backFact!.text, lang)}
-                widths={[280, 420, 560]}
-                sizes="(max-width: 48rem) 60vw, 360px"
-                formats={['avif', 'webp']}
-                fallbackFormat="jpg"
+                widths={widths}
+                sizes={sizes}
+                width={840}
+                formats={['avif']}
+                fallbackFormat="webp"
                 quality={82}
                 loading="lazy"
               />
@@ -134,10 +148,22 @@ const Tag = back ? 'button' : 'div';
 </div>
 
 <script>
+  import { isStill, onMotionChange } from '~/scripts/motion';
+
   document.querySelectorAll<HTMLElement>('[data-astrolabe]').forEach((root) => {
     const instrument = root.querySelector<HTMLElement>('[data-instrument]')!;
     const btn = root.querySelector<HTMLButtonElement>('[data-flip]');
     let turns = 0;
+
+    // The flip side's image waits for a sign of intent (or for the page to settle), instead of
+    // competing with the front face and the fonts for the first load.
+    if (btn) {
+      const arm = () => btn.toggleAttribute('data-armed', true);
+      for (const type of ['pointerenter', 'focus', 'touchstart'] as const) btn.addEventListener(type, arm, { once: true, passive: true });
+      const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+      const idle = () => ('requestIdleCallback' in window ? requestIdleCallback(arm, { timeout: 4000 }) : setTimeout(arm, 2500));
+      if (!saveData) document.readyState === 'complete' ? idle() : addEventListener('load', idle, { once: true });
+    }
 
     // Flipping turns the plate over and advances the rings a notch, like setting an instrument.
     btn?.addEventListener('click', () => {
@@ -150,36 +176,41 @@ const Tag = back ? 'button' : 'div';
     });
 
     // The instrument leans toward a fine pointer, and a highlight runs round the rim to face it.
+    // Events only record the pointer; its box is read once per frame, not once per event.
     const fine = matchMedia('(hover: hover) and (pointer: fine)');
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
     let raf = 0;
-    let target = { x: 0, y: 0 };
+    let px = 0;
+    let py = 0;
     addEventListener(
       'pointermove',
       (e) => {
-        if (!fine.matches || reduce.matches || e.pointerType !== 'mouse') return;
-        const r = root.getBoundingClientRect();
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        target = {
-          x: Math.max(-1, Math.min(1, (e.clientX - cx) / (innerWidth * 0.5))),
-          y: Math.max(-1, Math.min(1, (e.clientY - cy) / (innerHeight * 0.5))),
-        };
+        if (!fine.matches || isStill() || e.pointerType !== 'mouse') return;
+        px = e.clientX;
+        py = e.clientY;
         if (raf) return;
         raf = requestAnimationFrame(() => {
           raf = 0;
-          instrument.style.setProperty('--ry', `${(target.x * 7).toFixed(2)}deg`);
-          instrument.style.setProperty('--rx', `${(-target.y * 7).toFixed(2)}deg`);
-          const deg = (Math.atan2(target.y, target.x) * 180) / Math.PI + 90;
-          instrument.style.setProperty('--spec', `${deg.toFixed(1)}deg`);
+          if (isStill()) return;
+          const r = root.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > innerHeight) return;
+          const x = clamp((px - r.left - r.width / 2) / (innerWidth * 0.5));
+          const y = clamp((py - r.top - r.height / 2) / (innerHeight * 0.5));
+          instrument.style.setProperty('--ry', `${(x * 7).toFixed(2)}deg`);
+          instrument.style.setProperty('--rx', `${(-y * 7).toFixed(2)}deg`);
+          instrument.style.setProperty('--spec', `${((Math.atan2(y, x) * 180) / Math.PI + 90).toFixed(1)}deg`);
         });
       },
       { passive: true },
     );
-    document.documentElement.addEventListener('pointerleave', () => {
+    const resetTilt = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
       instrument.style.setProperty('--ry', '0deg');
       instrument.style.setProperty('--rx', '0deg');
-    });
+    };
+    document.documentElement.addEventListener('pointerleave', resetTilt);
+    onMotionChange(() => isStill() && resetTilt());
   });
 </script>
 
@@ -201,20 +232,20 @@ const Tag = back ? 'button' : 'div';
   .rings {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
     transform: translateZ(-18px);
   }
   .spin {
-    transform-origin: 200px 200px;
-    transform-box: view-box;
+    position: absolute;
+    inset: 0;
     transform: rotate(calc(var(--turns, 0) * 30deg));
     transition: transform 1.6s var(--ease-out);
   }
   .ring {
-    transform-origin: 200px 200px;
-    transform-box: view-box;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
   }
   .outer {
     animation: spin 160s linear infinite;
@@ -405,6 +436,10 @@ const Tag = back ? 'button' : 'div';
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  /* Not rendered, so the lazy image is not fetched until the disc is armed. */
+  .disc:not([data-armed]) .back :global(img) {
+    display: none;
   }
   .fallback {
     display: grid;

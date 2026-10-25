@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { defineCollection } from 'astro:content';
 import { file, glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { parse } from 'yaml';
 
 /**
  * Every entry carries a `visibility`:
@@ -28,7 +30,15 @@ const link = z.object({
   kind: z.enum(['repo', 'doi', 'paper', 'demo', 'site', 'other']).default('other'),
 });
 
-const themeId = z.enum(['embodied', 'learning', 'agents', 'local', 'compute']);
+/** The ids in a YAML collection, so a reference to a missing entry fails the build instead of
+ *  silently dropping a link or a theme. */
+function ids(collection: string): [string, ...string[]] {
+  const entries = (parse(readFileSync(`src/content/${collection}.yaml`, 'utf8')) ?? []) as { id: unknown }[];
+  return entries.map((e) => String(e.id)) as [string, ...string[]];
+}
+// A theme exists by being listed in themes.yaml; nothing else needs updating when one is added.
+const themeId = z.enum(ids('themes'));
+const workId = z.enum(ids('work'));
 
 const facts = defineCollection({
   loader: file('src/content/facts.yaml'),
@@ -51,11 +61,8 @@ const themes = defineCollection({
     label: localized,
     short: localized,
     blurb: localized,
+    /** The catalogue star the theme is drawn as, e.g. `Hamal · α Ari` (see lib/aries.ts). */
     star: z.string(),
-    /** Position on the atlas canvas, 0–1000 × 0–600. */
-    x: z.number(),
-    y: z.number(),
-    magnitude: z.number().default(1),
     order: z.number(),
   }),
 });
@@ -124,7 +131,7 @@ const timeline = defineCollection({
     when: localized,
     title: localized,
     body: localized.optional(),
-    work: z.array(z.string()).default([]),
+    work: z.array(workId).default([]),
     future: z.boolean().default(false),
     order: z.number(),
   }),

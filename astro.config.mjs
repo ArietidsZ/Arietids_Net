@@ -3,6 +3,7 @@ import { defineConfig, envField } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import { approvedAssets } from './integrations/approved-assets.mjs';
+import { pruneOrphans } from './integrations/prune-orphans.mjs';
 
 const site = process.env.SITE_URL ?? 'https://arietids.net';
 
@@ -34,8 +35,8 @@ export default defineConfig({
       filter: (page) => !page.includes('/review/') && !page.includes('/og/'),
       i18n: { defaultLocale: 'zh', locales: { zh: 'zh-CN', en: 'en' } },
     }),
+    pruneOrphans(),
   ],
   vite: { plugins: [approvedAssets()] },
-  prefetch: { defaultStrategy: 'hover' },
   devToolbar: { enabled: false },
 });

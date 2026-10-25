@@ -11,7 +11,7 @@ const _ = t(Astro.props.lang);
 ---
 
 <section class="soon">
-  <canvas class="sky" data-sky aria-hidden="true"></canvas>
+  <div class="sky" data-sky aria-hidden="true"></div>
   <div class="center">
     <Logo size={56} />
     <h1>{site.domain}</h1>
@@ -22,8 +22,8 @@ const _ = t(Astro.props.lang);
 
 <script>
   import { mountSky } from '~/scripts/sky';
-  const canvas = document.querySelector<HTMLCanvasElement>('[data-sky]');
-  if (canvas) mountSky(canvas, { radiant: { x: 0.5, y: 0.32 }, rate: 1100 });
+  const host = document.querySelector<HTMLElement>('[data-sky]');
+  if (host) mountSky(host, { radiant: { x: 0.5, y: 0.32 }, rate: 1100 });
 </script>
 
 <style>
@@ -35,12 +35,7 @@ const _ = t(Astro.props.lang);
     overflow: hidden;
     background: radial-gradient(60% 50% at 50% 32%, var(--accent-soft), transparent 70%), var(--bg-deep);
   }
-  .sky {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
+
   .center {
     position: relative;
     display: grid;

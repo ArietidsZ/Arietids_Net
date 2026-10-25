@@ -56,14 +56,15 @@ const year = new Date().getFullYear();
 </footer>
 
 <script>
+  import { isStill } from '~/scripts/motion';
+
   // "Back to top" only makes sense on pages long enough to scroll away from it.
   const short = () => document.documentElement.scrollHeight < innerHeight * 1.5;
   document.querySelectorAll<HTMLAnchorElement>('[data-to-top]').forEach((a) => (a.hidden = short()));
   document.querySelectorAll<HTMLAnchorElement>('[data-to-top]').forEach((a) =>
     a.addEventListener('click', (e) => {
       e.preventDefault();
-      const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off';
-      window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+      window.scrollTo({ top: 0, behavior: isStill() ? 'auto' : 'smooth' });
       document.querySelector<HTMLElement>('.brand')?.focus({ preventScroll: true });
     }),
   );

@@ -4,15 +4,10 @@
  * time (seeded, so every build is identical). Two fixed layers drift at different rates as the page
  * scrolls, which gives the long page a little depth without any script.
  */
+import { seeded } from '~/lib/random';
+
 const W = 1600;
 const H = 1000;
-
-function seeded(seed: number) {
-  return () => {
-    seed = (seed * 1664525 + 1013904223) % 4294967296;
-    return seed / 4294967296;
-  };
-}
 const rand = seeded(20250607);
 const round = (n: number) => Math.round(n * 10) / 10;
 
@@ -52,7 +47,8 @@ const meridians = Array.from({ length: 9 }, (_, i) => 98 + i * 11).map((deg) => 
   </div>
 </div>
 
-<style>
+<style is:global>
+  /* Global, with every rule under .cosmos: scoped styles would stamp an attribute on all 300 motes. */
   .cosmos {
     position: fixed;
     inset: 0 0 auto;
@@ -62,44 +58,55 @@ const meridians = Array.from({ length: 9 }, (_, i) => 98 + i * 11).map((deg) => 
     overflow: hidden;
     contain: strict;
   }
-  .layer {
+  .cosmos .layer {
     position: absolute;
     inset: 0;
   }
-  .dust {
+  .cosmos .dust {
     inset: 0 0 -20%;
     opacity: 0.6;
   }
-  :global(:root[data-theme='day']) .dust {
+  :root[data-theme='day'] .cosmos .dust {
     opacity: 0.32;
   }
-  svg {
+  .cosmos svg {
     width: 100%;
     height: 100%;
   }
-  .grat svg {
+  /* The chart lines turn a little as the page scrolls, so their layer is a margin larger than the
+     screen (and clipped there) rather than unbounded: an unclipped layer was 3458px square. */
+  .cosmos .grat {
+    inset: -40px -40px -120px;
+    overflow: hidden;
+  }
+  .cosmos .grat svg {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    width: calc(100% - 80px);
+    height: calc(100% - 160px);
     overflow: visible;
   }
-  .grat circle,
-  .grat line {
+  .cosmos .grat circle,
+  .cosmos .grat line {
     fill: none;
     stroke: var(--graticule);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
-  .grat .dashed {
+  .cosmos .grat .dashed {
     stroke-dasharray: 2 6;
   }
   /* Meridians are dotted and fainter, so long straight lines never read as scratches behind text. */
-  .grat line {
+  .cosmos .grat line {
     stroke-dasharray: 1 7;
     stroke-linecap: round;
     opacity: 0.7;
   }
-  .dust circle {
+  .cosmos .dust circle {
     fill: var(--dust);
   }
-  .dust .cool {
+  .cosmos .dust .cool {
     fill: var(--dust-cool);
   }
 
@@ -107,16 +114,16 @@ const meridians = Array.from({ length: 9 }, (_, i) => 98 + i * 11).map((deg) => 
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
       /* Longhands only: folded into the shorthand by the minifier, the rule is dropped by Chrome. */
-      .dust,
-      .grat {
+      .cosmos .dust,
+      .cosmos .grat {
         animation-timing-function: linear;
         animation-fill-mode: both;
         animation-timeline: scroll(root);
       }
-      .dust {
+      .cosmos .dust {
         animation-name: drift-dust;
       }
-      .grat {
+      .cosmos .grat {
         animation-name: drift-grat;
       }
     }

@@ -38,9 +38,42 @@ function decoded(text) {
     .replace(/\\(["'\/])/g, '$1');
 }
 
-function hasValue(text, value) {
-  return text.includes(value) || text.includes(encodeURIComponent(value));
+/** JSON string values carry decoded control characters; keep each value a separate match boundary. */
+function serializedStrings(text) {
+  const values = [];
+  try {
+    JSON.parse(text, (_key, value) => {
+      if (typeof value === 'string') values.push(value);
+      return value;
+    });
+  } catch {
+    return [];
+  }
+  return values;
 }
+
+/**
+ * Text as a reader sees it. The site's own typesetting (components/ui/Typeset.astro and the hero's
+ * clause spans) inserts zero-width breaks, splits phrases across elements and turns hyphens in
+ * ranges into en dashes, so a raw substring search would miss a leaked phrase. Both sides of a
+ * comparison go through this.
+ */
+export function readable(text) {
+  return text
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\u00ad\u200b-\u200d\u2060\ufeff]/g, '')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s+/g, ' ');
+}
+
+function hasValue(text, value, plain = readable(text)) {
+  if (!value) return false;
+  const visible = readable(value).trim();
+  return text.includes(value) || text.includes(encodeURIComponent(value)) || (visible.length > 0 && plain.includes(visible));
+}
+
+/** Long enough to identify an entry: eight characters, or four when it contains Han (denser). */
+const distinctive = (value) => value.length >= 8 || (/\p{Script=Han}/u.test(value) && value.length >= 4);
 
 function routes(entry) {
   if (entry.collection === 'work') return [`/work/${entry.id}/`, `/en/work/${entry.id}/`];
@@ -86,7 +119,7 @@ export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist')) {
     if (entry.collection === 'facts' && entry.id === 'identity.alias') continue;
     for (const value of strings(entry)) {
       const identity = entry.collection === 'facts' && ['identity.name', 'identity.github', 'contact.email'].includes(entry.id);
-      if ((identity || value.length >= 8) && !approvedValue(value))
+      if ((identity || distinctive(value)) && !approvedValue(value))
         forbidden.push({ value, key: `${entry.collection}:${entry.id}` });
     }
   }
@@ -119,11 +152,18 @@ export function checkPublic(root = DEFAULT_ROOT, dist = join(root, 'dist')) {
     }
     if (!TEXT_EXTENSIONS.has(extname(file).toLowerCase())) continue;
     textFiles++;
-    const text = decoded(readFileSync(file, 'utf8'));
+    const source = readFileSync(file, 'utf8');
+    const text = decoded(source);
+    const plain = readable(text);
+    const serialized = serializedStrings(source).map((value) => {
+      const text = decoded(value);
+      return { text, plain: readable(text) };
+    });
     if (/data-visibility=["'](?:pending|private)["']/.test(text)) problems.push(`${rel}: non-public visibility marker`);
     if (text.includes('data-preview-bar')) problems.push(`${rel}: preview bar present`);
     for (const { value, key } of forbidden) {
-      if (hasValue(text, value)) problems.push(`${rel}: contains text from ${key}`);
+      if (hasValue(text, value, plain) || serialized.some((s) => hasValue(s.text, value, s.plain)))
+        problems.push(`${rel}: contains text from ${key}`);
     }
     for (const value of aliases) if (hasAlias(text, value)) problems.push(`${rel}: unapproved alias in identity metadata or serialized value`);
     for (const theme of hiddenThemes)

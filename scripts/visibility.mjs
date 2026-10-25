@@ -13,9 +13,12 @@
  */
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseDocument, isScalar, isMap, visit } from 'yaml';
 
-const root = new URL('../src/content/', import.meta.url).pathname;
+// fileURLToPath, not URL.pathname: the latter stays percent-encoded, so a checkout under a path
+// with spaces or Chinese characters was not found.
+const root = fileURLToPath(new URL('../src/content/', import.meta.url));
 const YAML_COLLECTIONS = ['facts', 'work', 'honors', 'timeline'];
 const LEVELS = ['public', 'pending', 'private'];
 
@@ -32,7 +35,7 @@ function noteFiles() {
 }
 
 function frontmatter(text) {
-  const m = text.match(/^---\n([\s\S]*?)\n---/);
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   return m ? { raw: m[1], doc: parseDocument(m[1]) } : undefined;
 }
 

@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "astro dev",
     "dev:public": "CONTENT_MODE=public astro dev",
-    "build": "node scripts/visibility.mjs lint && CONTENT_MODE=public astro build && node scripts/check-public.mjs",
+    "build": "node scripts/visibility.mjs lint && CONTENT_MODE=public astro build && node scripts/check-public.mjs && node scripts/fonts.mjs --check",
     "build:preview": "node scripts/visibility.mjs lint && CONTENT_MODE=preview astro build",
     "preview": "CONTENT_MODE=preview astro preview",
     "preview:public": "CONTENT_MODE=public astro preview",
@@ -18,7 +18,10 @@
     "review": "node scripts/visibility.mjs list",
     "visibility": "node scripts/visibility.mjs",
     "og": "node scripts/og.mjs",
-    "test:e2e": "playwright test"
+    "fonts": "node scripts/fonts.mjs",
+    "test": "node --test \"scripts/**/*.test.mjs\" \"src/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "test:public": "playwright test -c playwright.public.config.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",
@@ -27,7 +30,6 @@
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
-    "@fontsource-variable/noto-serif-sc": "^5.3.1",
     "astro": "^7.4.0",
     "sharp": "^0.35.5"
   },
@@ -35,7 +37,9 @@
     "@astrojs/check": "^0.9.10",
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.56.1",
-    "playwright-core": "^1.56.1",
+    "fontverter": "2.0.0",
+    "harfbuzzjs": "1.6.4",
+    "subset-font": "^2.9.0",
     "typescript": "^6.0.3",
     "yaml": "^2.9.1"
   }
