@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
-    { "source": "/notes/:path*", "destination": "/blog/:path*", "statusCode": 301 },
-    { "source": "/en/notes/:path*", "destination": "/en/blog/:path*", "statusCode": 301 }
+    { "source": "/notes/:path(.*)?", "destination": "/blog/:path", "statusCode": 301 },
+    { "source": "/en/notes/:path(.*)?", "destination": "/en/blog/:path", "statusCode": 301 }
   ],
   "headers": [
     {
